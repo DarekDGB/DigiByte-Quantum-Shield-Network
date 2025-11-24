@@ -1,22 +1,29 @@
 """
-Basic smoke tests for DigiByte Quantum Shield Network (DQSN).
+Smoke tests for DQSN.
 
 Goal:
-- Make sure the main modules import cleanly.
-- This catches syntax errors or missing dependencies early.
+- Make sure dqsn_core and dqsn_engine import cleanly.
 """
 
 import importlib
+import sys
+from pathlib import Path
 
 
-MODULES = [
-    "dqsn_core",
-    "dqsn_engine",
-]
+def _ensure_root_on_path() -> None:
+    """
+    Add the repo root (where dqsn_core.py lives) to sys.path so
+    imports work when pytest runs in CI.
+    """
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
 
 
-def test_modules_importable():
-    """All core DQSN modules should be importable without errors."""
-    for name in MODULES:
-        mod = importlib.import_module(name)
-        assert mod is not None, f"Failed to import {name}"
+def test_import_main_modules() -> None:
+    """dqsn_core and dqsn_engine should both import without errors."""
+    _ensure_root_on_path()
+
+    for name in ("dqsn_core", "dqsn_engine"):
+        module = importlib.import_module(name)
+        assert module is not None, f"Failed to import {name}"
