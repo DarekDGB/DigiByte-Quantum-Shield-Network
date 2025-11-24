@@ -1,14 +1,6 @@
-"""
-DQSN smoke test (placeholder).
-
-Goal:
-- Prove that the test suite and CI pipeline run successfully.
-- Future work: add real import + engine tests.
-
-This is intentionally minimal so it can’t fail from import errors while
-the DQSN engine is still evolving.
-"""
-
-def test_smoke_placeholder():
-    """Always passes – marks the pipeline as wired up."""
-    assert True
+def test_imports():
+    try:
+        import dqsn_core
+        import dqsn_engine
+    except Exception as e:
+        raise AssertionError(f"Import failed: {e}")
