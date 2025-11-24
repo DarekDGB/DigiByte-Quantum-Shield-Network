@@ -1,29 +1,30 @@
 """
-Smoke tests for DQSN.
+Minimal sanity tests for DQSN.
 
 Goal:
-- Make sure dqsn_core and dqsn_engine import cleanly.
+- Make sure dqsn_core.py and dqsn_engine.py import cleanly.
+- This catches syntax errors or missing dependencies early.
 """
 
-import importlib
 import sys
 from pathlib import Path
+import importlib
 
 
 def _ensure_root_on_path() -> None:
-    """
-    Add the repo root (where dqsn_core.py lives) to sys.path so
-    imports work when pytest runs in CI.
-    """
+    """Add repo root to sys.path so imports work in CI."""
     root = Path(__file__).resolve().parents[1]
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
 
-def test_import_main_modules() -> None:
-    """dqsn_core and dqsn_engine should both import without errors."""
+def test_import_dqsn_core():
     _ensure_root_on_path()
+    module = importlib.import_module("dqsn_core")
+    assert module is not None
 
-    for name in ("dqsn_core", "dqsn_engine"):
-        module = importlib.import_module(name)
-        assert module is not None, f"Failed to import {name}"
+
+def test_import_dqsn_engine():
+    _ensure_root_on_path()
+    module = importlib.import_module("dqsn_engine")
+    assert module is not None
