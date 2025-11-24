@@ -1,6 +1,11 @@
-# tests/test_imports.py
-# Placeholder test so the DQSN CI pipeline passes.
-# Real import tests can be added later when the engine/core APIs are stable.
+"""
+DQSN placeholder test.
 
-def test_placeholder_passes():
+Right now this only exists to verify that the GitHub Actions
+workflow runs successfully on each push. Real functional tests
+will be added in DQSN v2.
+"""
+
+def test_placeholder():
+    # Always passes
     assert True
