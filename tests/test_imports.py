@@ -1,12 +1,6 @@
-"""
-Temporary smoke test for DQSN.
+# tests/test_imports.py
+# Placeholder test so the DQSN CI pipeline passes.
+# Real import tests can be added later when the engine/core APIs are stable.
 
-Goal:
-- Prove that GitHub Actions + pytest run correctly.
-- If this passes, any remaining failures are from real tests,
-  not the workflow itself.
-"""
-
-def test_placeholder_always_passes():
-    """This test always passes."""
+def test_placeholder_passes():
     assert True
