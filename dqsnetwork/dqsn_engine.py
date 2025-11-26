@@ -274,3 +274,40 @@ if __name__ == "__main__":
     print(f"  risk_score = {b.risk_score:.3f}")
     print(f"  level      = {b.level}")
     print(f"  factors    = {b.factors}")
+
+# --------------------------------------------------------------------------- #
+# Adaptive Core bridge helper
+# --------------------------------------------------------------------------- #
+
+from typing import Any, Callable, Optional
+
+from .adaptive_bridge import build_adaptive_event_from_score
+
+
+def emit_adaptive_event_from_network_score(
+    score: float,
+    *,
+    chain_id: str = "DigiByte-mainnet",
+    window_seconds: int = 60,
+    meta: Optional[dict] = None,
+    sink: Optional[Callable[[Any], None]] = None,
+) -> None:
+    """
+    Convert a DQSN network score into an AdaptiveEvent and optionally send it
+    to an external sink (for example, the Adaptive Core writer API).
+
+    This keeps DQSN decoupled from the adaptive_core package:
+      - adaptive_bridge.build_adaptive_event_from_score() knows how to build
+        the AdaptiveEvent instance
+      - DQSN only needs to call this helper and pass the resulting event to
+        whatever sink is configured.
+    """
+    event = build_adaptive_event_from_score(
+        score=score,
+        chain_id=chain_id,
+        window_seconds=window_seconds,
+        extra_meta=meta or {},
+    )
+
+    if sink is not None:
+        sink(event)
