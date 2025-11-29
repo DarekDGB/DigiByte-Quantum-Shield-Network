@@ -1,20 +1,16 @@
-from .models import NodeSignal, NetworkState
+# dqsn/aggregator.py
+
+from .models import NetworkState
+from .ingest import normalize_batch
+
 
 def aggregate(signals):
-    # convert dicts → NodeSignal
-    sig_objects = []
-    for s in signals:
-        sig_objects.append(
-            NodeSignal(
-                node_id=s["node_id"],
-                source=s["source"],
-                type=s["type"],
-                severity=s["severity"],
-                metadata=s.get("metadata")
-            )
-        )
+    """
+    Take a list of raw signal dicts and return a NetworkState.
+    """
+    sig_objects = normalize_batch(signals)
 
     return NetworkState(
         signals=sig_objects,
-        aggregated={"count": len(sig_objects)}
+        aggregated={"count": len(sig_objects)},
     )
