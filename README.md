@@ -1,210 +1,227 @@
-# DigiByte-Quantum-Shield-Network v2 (DQSN)
+# 🛡 DigiByte Quantum Shield Network (DQSN) v2  
+### *Layer 2 — Network-Wide Threat Aggregation & Scoring*
 
-Quantum-era monitoring and anomaly detection layer for the DigiByte
-ecosystem.\
-The **DigiByte Quantum Shield Network (DQSN)** focuses on *observing and
-analysing* network behaviour to surface early signals of instability or
-unusual activity.\
-It does **not** modify DigiByte consensus, cryptography, or protocol
-rules.
+## 1. Project Intent
 
-------------------------------------------------------------------------
+DQSN v2 is **not** a consensus-layer protocol and does **not** modify DigiByte Core, mining rules, or cryptography.  
+It is an **external coordination and telemetry layer** that listens to many DigiByte nodes and security agents, then
+computes a **global threat picture** for the ecosystem.
 
-## 🚀 Purpose
+Think of DQSN as the *“network immune system nerve centre”*:
 
-DQSN provides chain-level analytics by monitoring:
+- Sentinel AI v2 → sends anomaly + drift signals  
+- ADN v2 → sends local defense status + lock events  
+- Guardian Wallet v2 / Quantum Wallet Guard → send wallet‑side risk flags  
+- Oracles / infra telemetry → send chain + infra health data  
 
--   entropy degradation\
--   signature uniformity anomalies\
--   nonce / randomness irregularities\
--   mempool shockwaves\
--   reorg instability patterns\
--   cross-chain correlation signals
+DQSN aggregates all of this into **one coherent risk score** that can be used by:
 
-It classifies detected conditions into:\
-**Normal → Elevated → High → Critical**
+- node operators  
+- exchanges / custodians  
+- monitoring dashboards  
+- future DigiByte Core proposals
 
-All actions are **observational only**. DQSN does not isolate nodes,
-block signatures, or enforce cryptographic changes.
+All crypto‑economic decisions (forks, PoW / PQC upgrades, difficulty rules, etc.) stay with **DigiByte Core (C++)** and the wider community.
 
-------------------------------------------------------------------------
+DQSN is just a **data and signalling layer** — a *blueprint* for how the ecosystem could coordinate around quantum and large‑scale security risks.
 
-## 🌐 Architecture Overview
+---
 
-``` mermaid
-flowchart LR
-    A[DigiByte Node] -->|Telemetry / RPC Data| B[DQSN Engine]
-    B --> C[Risk Scoring]
-    C --> D[Anomaly Logs / Flags]
-    C --> E[(Optional) Adaptive Core Bridge]
+## 2. High-Level Architecture (v2)
+
+DQSN v2 is built around a few simple components:
+
+1. **Ingestors**  
+   - accept JSON/HTTP/RPC style payloads from Sentinel AI v2, ADN v2, wallet guardians, and other telemetry sources  
+   - normalise signals into a common internal format
+
+2. **Threat Aggregator**  
+   - merges many node-level signals into a **network-level threat score**  
+   - applies weights per source (e.g. Sentinel vs ADN vs oracles)  
+   - supports multiple risk channels (consensus, mempool, wallet, infra)
+
+3. **Scoring Engine**  
+   - converts raw events into a `0.0 – 1.0` risk score per channel  
+   - supports simple rules first (v2), with the option for more advanced models later
+
+4. **Advisory Engine**  
+   - maps risk scores to human-readable **advisory states**, for example:  
+     - `NORMAL`  
+     - `ELEVATED`  
+     - `CRITICAL_LOCAL`  
+     - `CRITICAL_GLOBAL`  
+   - designed to feed dashboards, alerts, or future governance flows
+
+5. **Exporters**  
+   - expose the current state via REST / JSON, logs, or message queues  
+   - can be wired into Grafana, Prometheus, or any custom dashboard
+
+---
+
+## 3. What DQSN v2 Does *Not* Do (Non‑Goals)
+
+- It does **not** mine blocks or participate in consensus.  
+- It does **not** sign transactions or hold private keys.  
+- It does **not** automatically hard‑fork DigiByte or change algorithms.  
+- It does **not** guarantee “perfect” quantum safety.
+
+DQSN v2 is an **observability + coordination blueprint**, not a finished, production‑ready infrastructure product.
+
+---
+
+## 4. Repository Structure (Target v2 Layout)
+
+A suggested minimal structure for this repo:
+
+```text
+DQSN/
+  ├── dqsn/
+  │   ├── __init__.py
+  │   ├── ingest.py          # input adapters (Sentinel, ADN, wallet, infra)
+  │   ├── aggregator.py      # merge signals, maintain network state
+  │   ├── scoring.py         # risk score calculations
+  │   ├── advisory.py        # mapping scores -> advisory levels
+  │   └── models.py          # dataclasses / types for signals & scores
+  │
+  ├── tests/
+  │   ├── __init__.py
+  │   └── test_aggregator.py # functional tests for network scoring
+  │
+  ├── examples/
+  │   └── sample_signals.json
+  │
+  ├── README.md              # (this file)
+  ├── LICENSE
+  └── pyproject.toml / setup.cfg (optional)
 ```
 
-------------------------------------------------------------------------
+You can adjust the exact file names to match how the repo is currently organised.  
+The important part: **clear separation** between ingest, aggregation, scoring, and advisory logic, with tests in `tests/`.
 
-## 🚀 Key Features
+---
 
-### 🔍 Quantum-Era Analytics
+## 5. Functional Testing (v2)
 
--   Shannon entropy sampling\
--   byte-level pattern deviation detection\
--   nonce/RNG irregularity observation
+To answer the question *“Where is the functional testing?”* — DQSN v2 is moving toward:
 
-### 📈 Network Intelligence
+- **unit tests** for small pieces (scoring, aggregation, advisory mapping)  
+- **functional tests** that simulate several nodes sending signals at once and verify the global threat score
 
--   mempool-pressure anomaly detection\
--   reorg-depth correlation\
--   timing drift analysis
+A minimal functional test could:
 
-### 🧰 Cross‑Chain Signal Fusion
+1. Create a few fake node signals (for example from Sentinel + ADN).  
+2. Feed them into the aggregator.  
+3. Assert that the **network‑level score** and **advisory state** match expectations.
 
--   combines alerts from multiple monitored chains\
--   raises global anomaly confidence
+Example skeleton in `tests/test_aggregator.py`:
 
-### 🧮 Risk Classification Engine
+```python
+import dqsn.aggregator as aggregator
+import dqsn.scoring as scoring
+import dqsn.advisory as advisory
 
--   **Normal (0.00--0.24)**\
--   **Elevated (0.25--0.49)**\
--   **High (0.50--0.74)**\
--   **Critical (0.75--1.00)**
+def test_network_risk_aggregation():
+    # 1. Create a few fake node-level signals
+    signals = [
+        {"node_id": "node-a", "source": "sentinel", "type": "block_stall", "severity": 0.8},
+        {"node_id": "node-b", "source": "sentinel", "type": "block_stall", "severity": 0.75},
+        {"node_id": "node-c", "source": "adn",      "type": "lockdown",    "severity": 0.9},
+    ]
 
-------------------------------------------------------------------------
+    # 2. Aggregate signals into a network view
+    network_state = aggregator.aggregate(signals)
 
-## 🧠 v2 Upgrade --- Adaptive Core Integration (Optional)
+    # 3. Score the current risk level
+    score = scoring.calculate_network_risk(network_state)
 
-DQSN v2 includes an optional bridge to the **DigiByte Quantum Adaptive
-Core** for research and experimentation:
+    # 4. Convert risk score to advisory
+    level = advisory.to_level(score)
 
--   network anomaly → AdaptiveEvent converter\
--   reinforcement learning hooks\
--   dynamic weighting logic
-
-It remains **fully standalone** and continues to operate without
-Adaptive Core.
-
-Included components:
-
--   `adaptive_bridge.py` -- safe event emission\
--   `emit_adaptive_event_from_network_score()` -- data pipeline\
--   v2‑safe data structures
-
-------------------------------------------------------------------------
-
-## 📦 Repository Structure
-
-    DigiByte-Quantum-Shield-Network/
-    │
-    ├── dqsnetwork/
-    │   ├── __init__.py
-    │   ├── dqsnet_core.py
-    │   ├── dqsnet_engine.py
-    │   ├── adaptive_bridge.py
-    │   └── tests/
-    │       ├── __init__.py
-    │       └── test_imports.py
-    │
-    ├── DQSN_Whitepaper_v1.pdf
-    ├── DQSN_TechnicalSpec_v1.pdf
-    ├── DQSN_DeveloperDoc_v1.pdf
-    ├── DQSN_CodeBlueprint_v1.pdf
-    │
-    ├── LICENSE
-    └── README.md
-
-------------------------------------------------------------------------
-
-## 🧩 How It Works
-
-### 1️⃣ Entropy Analysis
-
-Detects potential randomness irregularities.
-
-### 2️⃣ Pattern Deviation
-
-Observes uniformity or byte-level anomalies.
-
-### 3️⃣ Network Drift
-
-Monitors:\
-- mempool spikes\
-- time drift\
-- multi-depth reorg patterns
-
-### 4️⃣ Cross‑Chain Correlation
-
-If multiple blockchains report similar anomalies → risk increases.
-
-------------------------------------------------------------------------
-
-## 🧩 Example Usage
-
-### Signature entropy + network context
-
-``` python
-from dqsnet_engine import analyze_signature
-
-result = analyze_signature(
-    signature_bytes=b"...",
-    mempool_spike=0.8,
-    reorg_depth=5,
-    cross_chain_alerts=4,
-)
-
-print(result.level)
-print(result.risk_score)
-print(result.factors)
+    # 5. Assert expectations
+    assert 0.0 <= score <= 1.0
+    assert level in {"NORMAL", "ELEVATED", "CRITICAL_LOCAL", "CRITICAL_GLOBAL"}
+    assert level in {"ELEVATED", "CRITICAL_GLOBAL"}
 ```
 
-### Minimal API (FastAPI)
+This is **not production‑ready logic**; it is a simple starting point so that DigiByte devs and infra operators can:
 
-``` python
-from fastapi import FastAPI
-from dqsnet_core import compute_risk_score, BlockMetrics
+- see how a global threat picture could be computed, and  
+- extend / replace this logic with whatever they prefer.
 
-app = FastAPI()
+---
 
-@app.post("/dqsnet/analyze")
-def analyze(req: BlockMetrics):
-    return compute_risk_score(req)
-```
+## 6. How DQSN Connects to the Other Layers
 
-------------------------------------------------------------------------
+DQSN is deliberately simple and generic so any DigiByte node or security tool can integrate.
 
-## 🔗 v2 Adaptive-Core Bridge (Optional)
+### Inputs (examples)
 
-``` python
-from dqsnetwork.adaptive_bridge import emit_adaptive_event_from_network_score
+- **Sentinel AI v2**  
+  - anomaly type (e.g. block stall, reorg pattern, entropy drop)  
+  - severity score  
+  - block height / time
 
-emit_adaptive_event_from_network_score(
-    score=0.72,
-    chain_id="DigiByte-mainnet",
-    window_seconds=60,
-    meta={"source": "dqsnetwork"},
-    sink=adaptive_writer.send_event
-)
-```
+- **ADN v2**  
+  - node lockdown status  
+  - RPC restrictions  
+  - local incident flags
 
-------------------------------------------------------------------------
+- **Guardian Wallet v2 / Quantum Wallet Guard**  
+  - unusual withdrawal patterns  
+  - address / UTXO risk scores
 
-## ✔️ Tests
+- **Infra & Oracles**  
+  - node uptime & latency  
+  - price feed divergence  
+  - RPC / mempool health
 
-DQSN v2 includes automated test imports for module integrity.
+### Outputs (examples)
 
-------------------------------------------------------------------------
+- single **network risk score** per channel (consensus / wallet / infra)  
+- human‑readable advisory level  
+- logs / JSON feeds for dashboards
 
-## 📜 License
+This gives DigiByte Core, wallet devs, and infra operators a **shared, data‑driven language** to talk about risk.
 
-MIT License --- free to use, modify, and distribute.
+---
 
-------------------------------------------------------------------------
+## 7. Status of v2
 
-## 👤 Author
+- ✅ Concept + architecture defined  
+- ✅ Role within the 5‑layer Quantum Shield clarified  
+- ✅ Non‑goals and limitations documented  
+- 🔄 Repo refactor to the target layout (in progress)  
+- 🔄 First functional tests in `tests/` (in progress)  
+- 🔄 Example signal payloads in `examples/` (planned)  
+- 🔄 Dashboard / exporter examples (future work)
 
-Created and maintained by **Darek (@Darek_DGB)**\
-Visionary architect behind the DigiByte multi-layer monitoring stack.
+DQSN v2 should be treated as a **reference architecture** and a **starting point** for DigiByte contributors — not the final word on how network‑wide security coordination must be done.
 
-------------------------------------------------------------------------
+---
 
-## 🌟 Vision
+## 8. License & Reuse
 
-DQSN is part of the next-generation quantum-aware analytics architecture
-that will strengthen DigiByte for decades ahead.
+This repo is intended to be **open, forkable, and adaptable**.  
+Other UTXO chains, mining pools, or security teams are free to:
+
+- reuse the concepts  
+- extend the code  
+- swap in different scoring rules  
+- integrate it with their own dashboards and infra
+
+DigiByte remains the **primary design target**, but the ideas are intentionally general so they can benefit the wider PoW ecosystem as well.
+
+---
+
+## 9. Disclaimer
+
+DQSN v2 is **experimental** and provided “as‑is”, with no guarantees.  
+It is not a substitute for professional security review, formal verification, or audited production infrastructure.
+
+Use it as:
+
+- a **blueprint**  
+- a **discussion starter**  
+- a **tool for experiments and simulations**
+
+The final decisions on DigiByte’s security roadmap always belong to the DigiByte Core devs and the community.
