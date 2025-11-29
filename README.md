@@ -1,65 +1,91 @@
 # DigiByte-Quantum-Shield-Network v2 (DQSN)
 
-Quantum-resistant security layer for the DigiByte blockchain.\
-The **DigiByte Quantum Shield Network (DQSN)** detects early quantum-era
-threats through:
-
--   entropy degradation analysis\
--   anomalous signature patterns\
--   nonce & byte-level repetition\
--   mempool-spike signals\
--   reorg instability\
--   cross-chain alert aggregation
-
-DQSN classifies threat levels into **normal → elevated → high →
-critical**\
-and enables automated triggers for PQC migration and defensive actions.
-
-Fully open-source and MIT-licensed for long-term DigiByte protection.
+Quantum-era monitoring and anomaly detection layer for the DigiByte
+ecosystem.\
+The **DigiByte Quantum Shield Network (DQSN)** focuses on *observing and
+analysing* network behaviour to surface early signals of instability or
+unusual activity.\
+It does **not** modify DigiByte consensus, cryptography, or protocol
+rules.
 
 ------------------------------------------------------------------------
 
-## 🚀 Features
+## 🚀 Purpose
 
-### 🔐 Quantum-Era Threat Detection
+DQSN provides chain-level analytics by monitoring:
 
--   Shannon-entropy signature scanning\
--   Repetition & uniformity detection\
--   Nonce/RNG-quality monitoring
+-   entropy degradation\
+-   signature uniformity anomalies\
+-   nonce / randomness irregularities\
+-   mempool shockwaves\
+-   reorg instability patterns\
+-   cross-chain correlation signals
 
-### 🌐 Chain-Level Intelligence
+It classifies detected conditions into:\
+**Normal → Elevated → High → Critical**
 
--   Mempool-pressure anomaly detection\
--   Reorg-depth modelling\
--   Cross-chain alert fusion
-
-### 🛡 Shield Classification Engine
-
-Risk tiers: - **Normal (0.00--0.24)**\
-- **Elevated (0.25--0.49)**\
-- **High (0.50--0.74)**\
-- **Critical (0.75--1.00)**
+All actions are **observational only**. DQSN does not isolate nodes,
+block signatures, or enforce cryptographic changes.
 
 ------------------------------------------------------------------------
 
-## 🧠 v2 Upgrade --- Adaptive Core Integration (NEW)
+## 🌐 Architecture Overview
 
-DQSN v2 now includes a **full bridge to the
-DigiByte-Quantum-Adaptive-Core**, enabling:
+``` mermaid
+flowchart LR
+    A[DigiByte Node] -->|Telemetry / RPC Data| B[DQSN Engine]
+    B --> C[Risk Scoring]
+    C --> D[Anomaly Logs / Flags]
+    C --> E[(Optional) Adaptive Core Bridge]
+```
 
--   global threat → AdaptiveEvent streaming\
--   reinforcement learning across all 5 layers\
--   dynamic threshold + weight evolution\
--   self-learning blockchain immune system
+------------------------------------------------------------------------
+
+## 🚀 Key Features
+
+### 🔍 Quantum-Era Analytics
+
+-   Shannon entropy sampling\
+-   byte-level pattern deviation detection\
+-   nonce/RNG irregularity observation
+
+### 📈 Network Intelligence
+
+-   mempool-pressure anomaly detection\
+-   reorg-depth correlation\
+-   timing drift analysis
+
+### 🧰 Cross‑Chain Signal Fusion
+
+-   combines alerts from multiple monitored chains\
+-   raises global anomaly confidence
+
+### 🧮 Risk Classification Engine
+
+-   **Normal (0.00--0.24)**\
+-   **Elevated (0.25--0.49)**\
+-   **High (0.50--0.74)**\
+-   **Critical (0.75--1.00)**
+
+------------------------------------------------------------------------
+
+## 🧠 v2 Upgrade --- Adaptive Core Integration (Optional)
+
+DQSN v2 includes an optional bridge to the **DigiByte Quantum Adaptive
+Core** for research and experimentation:
+
+-   network anomaly → AdaptiveEvent converter\
+-   reinforcement learning hooks\
+-   dynamic weighting logic
+
+It remains **fully standalone** and continues to operate without
+Adaptive Core.
 
 Included components:
 
--   `adaptive_bridge.py` → converts DQSN risk → AdaptiveEvent\
--   `emit_adaptive_event_from_network_score()`\
--   v2‑safe data structures and fingerprints
-
-This bridge keeps DQSN **standalone**, but allows it to "power up" the
-entire shield when connected to Adaptive Core.
+-   `adaptive_bridge.py` -- safe event emission\
+-   `emit_adaptive_event_from_network_score()` -- data pipeline\
+-   v2‑safe data structures
 
 ------------------------------------------------------------------------
 
@@ -71,7 +97,7 @@ entire shield when connected to Adaptive Core.
     │   ├── __init__.py
     │   ├── dqsnet_core.py
     │   ├── dqsnet_engine.py
-    │   ├── adaptive_bridge.py      # NEW (v2)
+    │   ├── adaptive_bridge.py
     │   └── tests/
     │       ├── __init__.py
     │       └── test_imports.py
@@ -86,26 +112,26 @@ entire shield when connected to Adaptive Core.
 
 ------------------------------------------------------------------------
 
-## 🧠 How It Works
+## 🧩 How It Works
 
 ### 1️⃣ Entropy Analysis
 
-Detects weak randomness and compromised keys.
+Detects potential randomness irregularities.
 
-### 2️⃣ Repetition & Pattern Deviation
+### 2️⃣ Pattern Deviation
 
-Flags uniform signatures, RNG failures, and byte-level anomalies.
+Observes uniformity or byte-level anomalies.
 
-### 3️⃣ Network Anomalies
+### 3️⃣ Network Drift
 
-Watches for:\
-- mempool shockwaves\
-- block‑time drift\
-- multi‑depth reorg waves
+Monitors:\
+- mempool spikes\
+- time drift\
+- multi-depth reorg patterns
 
 ### 4️⃣ Cross‑Chain Correlation
 
-If several chains report similar anomalies → risk escalates.
+If multiple blockchains report similar anomalies → risk increases.
 
 ------------------------------------------------------------------------
 
@@ -143,7 +169,7 @@ def analyze(req: BlockMetrics):
 
 ------------------------------------------------------------------------
 
-## 🔗 v2 Adaptive-Core Bridge (NEW)
+## 🔗 v2 Adaptive-Core Bridge (Optional)
 
 ``` python
 from dqsnetwork.adaptive_bridge import emit_adaptive_event_from_network_score
@@ -157,30 +183,28 @@ emit_adaptive_event_from_network_score(
 )
 ```
 
-This allows DQSN to **teach** the reinforcement engine about real
-threats.
+------------------------------------------------------------------------
+
+## ✔️ Tests
+
+DQSN v2 includes automated test imports for module integrity.
 
 ------------------------------------------------------------------------
 
-## 🔒 License
+## 📜 License
 
-MIT License --- free use, modification & distribution.
+MIT License --- free to use, modify, and distribute.
 
 ------------------------------------------------------------------------
 
-## 🧑‍💻 Maintainer
+## 👤 Author
 
-Created and maintained by **DarekDGB**.
+Created and maintained by **Darek (@Darek_DGB)**\
+Visionary architect behind the DigiByte multi-layer monitoring stack.
 
 ------------------------------------------------------------------------
 
 ## 🌟 Vision
 
-DQSN is part of the next‑generation quantum‑resistant architecture that
-will keep DigiByte among the world's most secure UTXO blockchains.
-
-------------------------------------------------------------------------
-
-### ✔️ Tests added
-
-DQSN v2 includes automated test imports for module integrity.
+DQSN is part of the next-generation quantum-aware analytics architecture
+that will strengthen DigiByte for decades ahead.
