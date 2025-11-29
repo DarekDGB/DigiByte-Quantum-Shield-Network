@@ -1,0 +1,16 @@
+[
+    {
+        "node_id": "node-a",
+        "source": "sentinel",
+        "type": "block_stall",
+        "severity": 0.8,
+        "height": 17500000
+    },
+    {
+        "node_id": "node-b",
+        "source": "adn",
+        "type": "lockdown",
+        "severity": 0.9,
+        "reason": "local-defense-triggered"
+    }
+]
