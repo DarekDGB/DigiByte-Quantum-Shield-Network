@@ -88,6 +88,13 @@ class DQSNV3Request:
         }
     )
 
+    # Strict allowlists for key fields
+    ALLOWED_DECISIONS: FrozenSet[str] = frozenset({"ALLOW", "WARN", "BLOCK", "ERROR"})
+    ALLOWED_RISK_TIERS: FrozenSet[str] = frozenset({"LOW", "MEDIUM", "HIGH", "CRITICAL"})
+
+    MAX_REASON_CODES: int = 64
+    MAX_REASON_CODE_LEN: int = 96
+
     @staticmethod
     def from_dict(obj: Dict[str, Any]) -> "DQSNV3Request":
         if not isinstance(obj, dict):
@@ -109,7 +116,7 @@ class DQSNV3Request:
         if not isinstance(cv, int):
             raise ValueError(ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value)
 
-        if not isinstance(comp, str):
+        if not isinstance(comp, str) or not comp:
             raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
 
         if sigs is None or not isinstance(sigs, list):
@@ -133,7 +140,7 @@ class DQSNV3Request:
         if rc is not None:
             raise ValueError(rc.value)
 
-        # Validate each signal envelope minimally (structure only)
+        # Strict validation for each upstream signal envelope (structure only, not meaning)
         for s in sigs:
             if not isinstance(s, dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
@@ -142,19 +149,60 @@ class DQSNV3Request:
             if missing:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # enforce upstream signal v3
+            # Enforce upstream signal is v3
             if s.get("contract_version") != 3:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # enforce context_hash is a string (do not validate format here)
-            if not isinstance(s.get("context_hash"), str):
+            # component / request_id / context_hash must be strings
+            if not isinstance(s.get("component"), str) or not s.get("component"):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # enforce reason_codes is a list
-            if not isinstance(s.get("reason_codes"), list):
+            if not isinstance(s.get("request_id"), str) or not s.get("request_id"):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # enforce meta is a dict
+            if not isinstance(s.get("context_hash"), str) or not s.get("context_hash"):
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            # decision must be one of the allowed values
+            decision = s.get("decision")
+            if not isinstance(decision, str) or decision.strip().upper() not in DQSNV3Request.ALLOWED_DECISIONS:
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            # risk must be dict with score (finite number) and tier (allowed)
+            risk = s.get("risk")
+            if not isinstance(risk, dict):
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            score = risk.get("score")
+            tier = risk.get("tier")
+            if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(float(score)):
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            # clamp checks are validation only; DQSN does not modify upstream meaning
+            if float(score) < 0.0 or float(score) > 1.0:
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            if not isinstance(tier, str) or tier.strip().upper() not in DQSNV3Request.ALLOWED_RISK_TIERS:
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            # reason_codes must be list[str] with sane bounds
+            rcodes = s.get("reason_codes")
+            if not isinstance(rcodes, list):
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            if len(rcodes) > DQSNV3Request.MAX_REASON_CODES:
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            for r in rcodes:
+                if not isinstance(r, str) or not r:
+                    raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+                if len(r) > DQSNV3Request.MAX_REASON_CODE_LEN:
+                    raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
+            # evidence and meta must be dicts (DQSN treats content as opaque)
+            if not isinstance(s.get("evidence"), dict):
+                raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
+
             if not isinstance(s.get("meta"), dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
