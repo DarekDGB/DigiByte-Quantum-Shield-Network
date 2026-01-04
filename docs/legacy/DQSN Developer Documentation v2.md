@@ -1,5 +1,8 @@
 # DigiByte Quantum Shield Network – Developer Documentation (v2)
 
+> **Legacy note:** This document reflects earlier DQSN concepts (v2-era) and is kept for history.
+> Current authoritative specs: `docs/CONTRACT.md` and `docs/ARCHITECTURE.md`.
+
 ## Purpose
 This document is for developers integrating DQSN into DigiByte infrastructure, Sentinel AI, exchanges, custodians, or monitoring systems.
 
