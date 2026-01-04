@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 import math
 import time
 
+# 🔒 DQSN v3 (Shield Contract) routes
+from .v3_api import register_v3_routes
+
+
 app = FastAPI(
     title="DigiByte Quantum Shield Network - Prototype",
     description=(
@@ -13,6 +17,9 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+# 🔐 Mount Shield Contract v3 routes (non-breaking)
+register_v3_routes(app)
 
 
 class BlockMetrics(BaseModel):
