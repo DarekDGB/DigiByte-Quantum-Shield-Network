@@ -1,32 +1,51 @@
-# 🌐 DigiByte Quantum Shield Network (DQSN v2)
-### *Layer‑0 Network Health, Entropy & Telemetry Foundation of the DigiByte Quantum Shield*
+# 🌐 DigiByte Quantum Shield Network (DQSN)
+### *Shield Contract v3 · Deterministic Signal Aggregation Layer of the DigiByte Quantum Shield*
 **Architecture by @DarekDGB — MIT Licensed**
 
 ---
 
 ## 🚀 Purpose
 
-**DQSN v2** is the **lowest defensive layer** of the DigiByte Quantum Shield.  
-It provides a cryptographically transparent, consensus‑neutral stream of **network telemetry**,  
-feeding higher defensive layers with measurements about:
+**DQSN (Shield Contract v3)** is the **signal aggregation and transport layer** of the DigiByte Quantum Shield.
 
-- block entropy  
-- timestamp divergence  
-- node health  
-- propagation behaviour  
-- chain‑quality signals  
-- UTXO‑level patterns  
-- orphan / fork indicators  
+It sits between **sensor layers** (e.g. Sentinel AI) and **decision layers** (ADN, Adaptive Core),
+providing a **strict, deterministic, fail-closed network** for organizing and forwarding
+security signals.
 
-DQSN does **not** interfere with consensus.  
-Its job is **visibility**, not enforcement.
+DQSN does **not**:
+- interfere with consensus  
+- make enforcement decisions  
+- reinterpret upstream meaning  
 
-It is a **whitepaper‑grade reference architecture** that DigiByte developers and security researchers  
-can extend to build a global, real‑time view of the network’s health.
+Its role is **structure, ordering, and integrity**, not authority.
 
 ---
 
-# 🛡️ Position in the 5‑Layer DigiByte Quantum Shield
+## 🛡️ Shield Contract v3 Status
+
+DQSN now operates under **Shield Contract v3**.
+
+### Core guarantees
+
+- **Contract version enforced**
+  - `contract_version == 3` is mandatory
+  - Invalid inputs fail closed
+- **Transport-only**
+  - Signals are validated, deduplicated, and aggregated
+  - Meaning is never altered
+- **Deterministic**
+  - Same inputs → same output → same `context_hash`
+- **Fail-closed**
+  - Invalid schema, NaN/Infinity, oversized payloads → `ERROR`
+- **Single authority**
+  - All v3 logic flows through the v3 contract gate
+
+For authoritative details, start here:
+👉 **`docs/INDEX.md`**
+
+---
+
+# 🔥 Position in the 5‑Layer DigiByte Quantum Shield
 
 ```
  ┌───────────────────────────────────────────────┐
@@ -42,188 +61,132 @@ can extend to build a global, real‑time view of the network’s health.
                      ▲
                      │
  ┌───────────────────────────────────────────────┐
- │                ADN v2                         │
- │ Active Defence Network – responses, tactics    │
+ │                ADN v3                         │
+ │ Decision authority & active defence            │
  └───────────────────────────────────────────────┘
                      ▲
                      │
  ┌───────────────────────────────────────────────┐
- │             Sentinel AI v2                    │
- │ Telemetry analytics, anomaly detection        │
+ │            Sentinel AI v3                     │
+ │ Threat detection & risk signals               │
  └───────────────────────────────────────────────┘
                      ▲
                      │
  ┌───────────────────────────────────────────────┐
- │      DQSN v2 — THIS REPOSITORY                │
- │ Block entropy • Node health • Chain signals   │
+ │      DQSN v3 — THIS REPOSITORY                │
+ │ Deterministic signal aggregation & transport  │
  └───────────────────────────────────────────────┘
 ```
 
-DQSN is the **foundation** that makes every other defensive layer smarter.
+DQSN is the **bridge** that makes higher‑layer decisions reproducible and auditable.
 
 ---
 
 # 🎯 Mission
 
-### ✓ Provide raw facts about the state of DigiByte  
-DQSN outputs **structured, machine‑readable health metrics**.
+### ✓ Validate upstream signals  
+Only valid **Shield Contract v3** envelopes are accepted.
 
-### ✓ Enable higher‑layer AI analysis  
-Sentinel AI v2 consumes DQSN data to detect threats.
+### ✓ Deduplicate & order deterministically  
+Signals are deduplicated by `context_hash` and processed in a stable order.
 
-### ✓ Stay consensus‑neutral  
-DQSN does **not** modify DigiByte’s rules.  
-It only **observes**.
+### ✓ Aggregate context  
+Produce structured summaries without changing meaning.
 
-### ✓ Detect early signs of attack conditions  
-Reorg attempts, hashpower surges, timestamp anomalies, propagation imbalance.
-
----
-
-# 🧠 Telemetry Model (Formal)
-
-DQSN evaluates the network across **five measurement planes**:
-
-1. **Entropy Plane**  
-   - randomness quality of blocks  
-   - difficulty adjustment patterns  
-   - timestamp variance  
-   - nonce entropy  
-
-2. **Topology Plane**  
-   - peer distribution  
-   - geographic dispersion  
-   - connection churn  
-   - eclipse attack indicators  
-
-3. **Propagation Plane**  
-   - latency  
-   - bottlenecks  
-   - missing peers  
-   - irregular propagation waves  
-
-4. **Chain‑Quality Plane**  
-   - orphan rate  
-   - competing headers  
-   - stale block patterns  
-
-5. **UTXO Behaviour Plane**  
-   - abnormal consolidation  
-   - dust storms  
-   - coordinated sweeping behaviour  
-
-Together these form a **network health vector**, consumable by Sentinel AI and ADN.
+### ✓ Remain consensus‑neutral  
+DQSN observes and transports only.
 
 ---
 
-# 🧩 Internal Architecture
+# 🧠 What DQSN Aggregates (Conceptual)
 
-```
-dqs_network/
-│
-├── collectors/
-│     ├── block_inspector.py
-│     ├── entropy_scanner.py
-│     ├── peer_probe.py
-│     ├── propagation_meter.py
-│     └── utxo_analyzer.py
-│
-├── metrics/
-│     ├── block_quality.py
-│     ├── difficulty_model.py
-│     ├── timestamp_profile.py
-│     ├── chain_signalizer.py
-│     └── network_score.py
-│
-├── outputs/
-│     ├── health_feed.py
-│     ├── sentinel_export.py
-│     └── adn_vector_bus.py
-│
-└── utils/
-      ├── config.py
-      ├── rpc.py
-      └── logging.py
-```
+DQSN does not generate raw telemetry itself in v3.
+Instead, it aggregates **signals produced by sensor layers**, such as:
 
-This layout is a **reference skeleton** for developers.
+- risk decisions  
+- severity tiers  
+- reason codes  
+- component‑level summaries  
+
+Legacy telemetry collection concepts are preserved in `docs/legacy/` for reference.
 
 ---
 
-# 📡 Data Flow Overview
+# 🧩 Internal Architecture (v3)
 
 ```
-[Full Nodes] 
-    ↓ RPC / P2P Scraping
-[Collectors]
-    ↓ structured raw metrics
-[Metric Fusion]
-    ↓ aggregated health vectors
-[Outputs]
-    ↓
-[Sentinel AI v2] → [ADN v2] → [QWG] → [Guardian Wallet]
+dqsnetwork/
+│
+├── contracts/
+│     ├── v3_types.py
+│     ├── v3_reason_codes.py
+│     └── v3_hash.py
+│
+├── v3.py              # Shield Contract v3 evaluator
+├── v3_api.py          # FastAPI v3 route
+├── dqsn_core.py       # Legacy v2 API (unchanged)
+│
+└── tests/
+      └── test_*       # Fail‑closed + determinism locks
+```
+
+The v3 contract surface is **explicit and isolated**.
+
+---
+
+# 📡 Data Flow Overview (v3)
+
+```
+[ Sentinel AI v3 ]
+        ↓
+[ Shield Contract v3 Envelope ]
+        ↓
+[ DQSN v3 ]
+        ↓
+[ Aggregated Context ]
+        ↓
+[ ADN v3 / Adaptive Core ]
 ```
 
 ---
 
-# 🔥 Example Measurements
+# 🛡️ Security Philosophy (v3)
 
-### **Block Entropy**
-- Nonce randomness  
-- Timestamp deviations  
-- Difficulty alignment vs expectation  
-
-### **Node Health**
-- peer churn  
-- misbehaving nodes  
-- asymmetric clustering  
-
-### **Chain Signals**
-- sudden forks  
-- stale block spikes  
-- header disagreement  
-
-### **Propagation**
-- latency differentials  
-- path asymmetry  
-- region‑specific slowdowns  
-
----
-
-# 🛡️ Security Philosophy
-
-1. **Transparency** — All signals must be reproducible.  
-2. **Predictability** — No hidden thresholds or black‑box behaviour.  
-3. **Decentralization Respect** — DQSN never interferes with consensus.  
-4. **Auditability** — Every signal must have a measurable origin.  
-5. **Fault‑Tolerance** — Degraded mode must still output partial metrics.  
-6. **Integration** — Designed for Sentinel→ADN→QWG consumption.
+1. **Fail‑Closed First** — Invalid input never propagates  
+2. **Determinism** — Reproducible outputs by design  
+3. **Separation of Authority** — DQSN never decides  
+4. **Minimal Surface** — Small, auditable contracts  
+5. **History Preserved** — Legacy docs archived, not erased  
 
 ---
 
 # ⚙️ Code Status
 
-DQSN v2 includes:
+DQSN v3 includes:
 
-- reference Python implementation  
-- collectors + metrics + output channels  
-- clean modular structure  
-- GitHub Actions CI with smoke tests  
-- ready for community extension  
+- Shield Contract v3 evaluator
+- Strict contract parsing & validation
+- Deterministic hashing & deduplication
+- FastAPI v3 endpoint (`/dqsnet/v3/evaluate`)
+- Full hardening test suite
+- Legacy v2 API preserved
 
-The repository is **architecturally complete**.
+DQSN v3 is **integration‑ready**.
 
 ---
 
-# 🧪 Tests
+# 📚 Documentation
 
-The existing test suite verifies:
+Start here:
+- **`docs/INDEX.md`** — authoritative entry point
 
-- structural integrity  
-- deterministic behaviour of certain metric modules  
-- import correctness  
+Authoritative v3 docs:
+- `docs/CONTRACT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DQSN_V3_UPGRADE_PLAN.md`
 
-The suite is expandable for deeper simulations.
+Legacy references:
+- `docs/legacy/`
 
 ---
 
@@ -231,23 +194,16 @@ The suite is expandable for deeper simulations.
 
 See `CONTRIBUTING.md`.
 
-Allowed:
-- extensions  
-- better metrics  
-- more collectors  
-- performance improvements  
-
-Not allowed:
-- removal of architecture  
-- attempts to turn DQSN into a consensus component  
+Rules:
+- v3 contracts must not be weakened
+- fail‑closed behavior is mandatory
+- DQSN must remain transport‑only
 
 ---
 
 # 📜 License
 
 MIT License  
-© 2025 **DarekDGB**
+© 2026 **DarekDGB**
 
 This architecture is free to use with mandatory attribution.
-
----
