@@ -1,5 +1,8 @@
 # DigiByte Quantum Shield Network – Code Blueprint (v2)
 
+> **Legacy note:** This document reflects earlier DQSN concepts (v2-era) and is kept for history.
+> Current authoritative specs: `docs/CONTRACT.md` and `docs/ARCHITECTURE.md`.
+
 ## Overview
 The Code Blueprint defines the architecture, module layout, and core execution logic of the **DQSN v2 engine**, including entropy analysis, repetition detection, network anomaly fusion, and adaptive upgrading hooks.
 
