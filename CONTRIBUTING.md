@@ -1,83 +1,143 @@
-# Contributing to DQSN v2 (DigiByte Quantum Shield Network)
+# Contributing to DQSN (DigiByte Quantum Shield Network)
 
-DQSN v2 is the **Layer‑0 telemetry, entropy, and chain‑signal foundation** of the DigiByte Quantum Shield.
-It is a **reference architecture**, not a consensus component. Contributions must strengthen network
-visibility without interfering with DigiByte’s rules.
+> **Shield Contract v3 Notice**
+>
+> DQSN is now a **Shield Contract v3 signal aggregation and transport layer**.
+> It is no longer an authoritative telemetry or scoring engine.
+>
+> Contributions must not weaken:
+> - contract strictness
+> - determinism
+> - fail-closed behavior
+>
+> Authoritative specifications live in **`docs/INDEX.md`**.
+
+---
+
+## 🚀 Project Scope (v3)
+
+**DQSN (Shield Contract v3)** sits between **sensor layers** (e.g. Sentinel AI)
+and **decision layers** (ADN, Adaptive Core).
+
+Its responsibilities are strictly limited to:
+
+- validating Shield Contract v3 envelopes
+- deterministic ordering and deduplication of signals
+- context aggregation without reinterpretation
+- fail-closed transport of security signals
+
+DQSN **must never**:
+- generate telemetry as authoritative behavior
+- score, reinterpret, or decide on risk
+- interfere with consensus or node behavior
+- act as an enforcement or policy engine
+
+Legacy telemetry concepts are preserved in `docs/legacy/` for historical reference only.
 
 ---
 
 ## ✅ What Contributions Are Welcome
 
-### ✔️ Extensions & Improvements
-- New collectors (entropy, peers, UTXO, topology, propagation)
-- New metrics or scoring models
-- Performance improvements
-- Better logging, reliability, error handling
-- Expanding tests (simulations, fuzz tests, unit tests)
-- Documentation improvements
+### ✔️ Contract & Core Improvements
+- Strengthening Shield Contract v3 validation
+- Improving fail-closed guarantees
+- Hardening determinism and replay safety
+- Reducing attack surface
+- Clarifying contract semantics
 
-### ✔️ Security / Reliability Fixes  
-Improvements that make the system more robust, deterministic, and auditable.
+### ✔️ Testing & Verification
+- Additional fail-closed tests
+- Determinism and regression tests
+- Property-based or fuzz testing
+- CI hardening
+
+### ✔️ Performance & Reliability
+- Safe performance optimizations
+- Memory and payload-bound enforcement
+- Latency improvements that do not alter behavior
+
+### ✔️ Documentation
+- Improvements to v3 documentation
+- Clarifying invariants and design intent
+- Correcting ambiguity or drift
 
 ---
 
 ## ❌ What Will Not Be Accepted
 
-### 🚫 Removal or weakening of core architecture
-DQSN has defined planes:
-- Entropy
-- Topology
-- Propagation
-- Chain-quality
-- UTXO behaviour
+### 🚫 Weakening the v3 Contract
+- Making validation permissive
+- Allowing partial or best-effort parsing
+- Softening fail-closed behavior
+- Introducing “auto-fix” logic for invalid input
 
-Any PR removing planes, downgrading capabilities, or eliminating modules  
-**will be rejected instantly**.
+### 🚫 Decision or Enforcement Logic
+DQSN must not:
+- assign risk scores
+- reinterpret upstream decisions
+- override or downgrade signals
+- act as a policy engine
 
-### 🚫 Consensus changes
-DQSN **must never**:
-- influence difficulty
-- modify block acceptance rules
-- interfere with node behaviour
-- act as a voting or enforcement system
+### 🚫 Consensus Interaction
+DQSN must never:
+- influence block acceptance
+- modify difficulty or timestamps
+- interact with DigiByte consensus rules
+- act as a voting or signaling mechanism
 
-DQSN only **observes**.
-
-### 🚫 External dependencies that reduce auditability
-Avoid adding complex frameworks, ML models, or code that obscures how metrics are produced.
+### 🚫 Unreviewable Complexity
+Avoid introducing:
+- opaque ML models
+- heavy frameworks
+- logic that obscures determinism or auditability
 
 ---
 
-## 🧱 Design Principles
+## 🧱 Design Principles (Non-Negotiable)
 
-All contributions must respect these core principles:
+All contributions must respect:
 
-1. **Transparency** – all metrics traceable, predictable.  
-2. **Reproducibility** – deterministic behaviour where possible.  
-3. **Decentralization Safety** – DQSN remains consensus-neutral.  
-4. **Auditability** – logic must be readable by security teams.  
-5. **Fail-Safe Defaults** – degraded operation still emits partial metrics.  
-6. **Interoperability** – outputs must remain usable by Sentinel AI v2 and ADN v2.
+1. **Fail-Closed First**  
+   Invalid input must never propagate.
+
+2. **Determinism**  
+   Same input → same output → same `context_hash`.
+
+3. **Separation of Authority**  
+   DQSN transports signals; it does not decide.
+
+4. **Minimal Surface**  
+   Keep contracts small, explicit, and auditable.
+
+5. **Auditability**  
+   Security reviewers must be able to reason about behavior from code alone.
+
+6. **History Preservation**  
+   Legacy concepts may be referenced, not re-introduced.
 
 ---
 
 ## 🔄 Pull Request Expectations
 
-A PR should contain:
+A PR must include:
 
-- A clear description of what changed and why  
-- Tests whenever applicable  
-- No breaking changes to folder structure  
-- No removal of architectural components  
-- Updated documentation if needed  
+- Clear explanation of **what changed and why**
+- Tests for any contract or logic changes
+- No weakening of v3 invariants
+- Documentation updates where applicable
 
-The architect (@DarekDGB) reviews **direction**.  
-DigiByte developers review **technical implementation**.
+Additional notes:
+- Contract changes **require tests**
+- Determinism changes require **regression coverage**
+- Fail-closed behavior must be preserved or strengthened
+
+The architect (**@DarekDGB**) reviews **direction and invariants**.  
+Contributors and reviewers assess **technical correctness**.
 
 ---
 
 ## 📝 License
 
-By contributing, you agree your work is released under the MIT License.
+By contributing, you agree your work is released under the **MIT License**.
 
-© 2025 **DarekDGB**
+© 2026 **DarekDGB**
