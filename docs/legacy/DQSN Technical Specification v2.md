@@ -1,5 +1,8 @@
 # DigiByte Quantum Shield Network – Technical Specification (v2, Adaptive‑Ready)
 
+> **Legacy note:** This document reflects earlier DQSN concepts (v2-era) and is kept for history.
+> Current authoritative specs: `docs/CONTRACT.md` and `docs/ARCHITECTURE.md`.
+
 ## System Summary
 DQSN v2 is a quantum‑era detection and intelligence layer focused on:
 - entropy degradation  
