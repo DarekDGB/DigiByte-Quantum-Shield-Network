@@ -1,5 +1,8 @@
 # DigiByte Quantum Shield Network (DQSN) – Whitepaper v2
 
+> **Legacy note:** This document reflects earlier DQSN concepts (v2-era) and is kept for history.
+> Current authoritative specs: `docs/CONTRACT.md` and `docs/ARCHITECTURE.md`.
+
 Author: DarekDGB  
 License: MIT
 
