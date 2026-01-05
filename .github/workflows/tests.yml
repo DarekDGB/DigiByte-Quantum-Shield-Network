@@ -34,6 +34,6 @@ jobs:
 
       - name: Run test suite
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}/dqsnetwork
         run: |
           pytest -q
