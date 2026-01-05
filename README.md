@@ -1,4 +1,7 @@
 # 🌐 DigiByte Quantum Shield Network (DQSN)
+![DQSN Tests](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/tests.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+
 ### *Shield Contract v3 · Deterministic Signal Aggregation Layer of the DigiByte Quantum Shield*
 **Architecture by @DarekDGB — MIT Licensed**
 
