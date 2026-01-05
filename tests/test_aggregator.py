@@ -1,6 +1,7 @@
-from dqsn.aggregator import aggregate
-from dqsn.scoring import calculate_network_risk
-from dqsn.advisory import to_level
+from dqsnetwork.aggregator import aggregate
+from dqsnetwork.scoring import calculate_network_risk
+from dqsnetwork.advisory import to_level
+
 
 def test_network_risk_aggregation():
     signals = [
