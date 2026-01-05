@@ -9,8 +9,8 @@
 **DQSN (Shield Contract v3)** is the **signal aggregation and transport layer** of the DigiByte Quantum Shield.
 
 It sits between **sensor layers** (e.g. Sentinel AI) and **decision layers** (ADN, Adaptive Core),
-providing a **strict, deterministic, fail-closed network** for organizing and forwarding
-security signals.
+providing a **strict, deterministic, fail-closed network contract** for organizing, deduplicating,
+and forwarding security signals.
 
 DQSN does **not**:
 - interfere with consensus  
@@ -23,7 +23,7 @@ Its role is **structure, ordering, and integrity**, not authority.
 
 ## 🛡️ Shield Contract v3 Status
 
-DQSN now operates under **Shield Contract v3**.
+DQSN operates under **Shield Contract v3**.
 
 ### Core guarantees
 
@@ -36,7 +36,9 @@ DQSN now operates under **Shield Contract v3**.
 - **Deterministic**
   - Same inputs → same output → same `context_hash`
 - **Fail-closed**
-  - Invalid schema, NaN/Infinity, oversized payloads → `ERROR`
+  - NaN / Infinity → `BAD_NUMBER`
+  - Invalid schema or semantics → `SIGNAL_INVALID`
+  - Oversized payloads → `ERROR`
 - **Single authority**
   - All v3 logic flows through the v3 contract gate
 
@@ -45,12 +47,12 @@ For authoritative details, start here:
 
 ---
 
-# 🔥 Position in the 5‑Layer DigiByte Quantum Shield
+# 🔥 Position in the 5-Layer DigiByte Quantum Shield
 
 ```
  ┌───────────────────────────────────────────────┐
  │           Guardian Wallet                     │
- │ User‑side rules, policies, behavioural guard  │
+ │ User-side rules, policies, behavioural guard  │
  └───────────────────────────────────────────────┘
                      ▲
                      │
@@ -62,7 +64,13 @@ For authoritative details, start here:
                      │
  ┌───────────────────────────────────────────────┐
  │                ADN v3                         │
- │ Decision authority & active defence            │
+ │ Decision authority & active defence           │
+ └───────────────────────────────────────────────┘
+                     ▲
+                     │
+ ┌───────────────────────────────────────────────┐
+ │              DQSN v3                          │
+ │ Deterministic signal aggregation & transport  │
  └───────────────────────────────────────────────┘
                      ▲
                      │
@@ -70,15 +78,10 @@ For authoritative details, start here:
  │            Sentinel AI v3                     │
  │ Threat detection & risk signals               │
  └───────────────────────────────────────────────┘
-                     ▲
-                     │
- ┌───────────────────────────────────────────────┐
- │      DQSN v3 — THIS REPOSITORY                │
- │ Deterministic signal aggregation & transport  │
- └───────────────────────────────────────────────┘
 ```
 
-DQSN is the **bridge** that makes higher‑layer decisions reproducible and auditable.
+DQSN is the **bridge** that makes higher-layer decisions reproducible, auditable,
+and deterministic.
 
 ---
 
@@ -91,24 +94,25 @@ Only valid **Shield Contract v3** envelopes are accepted.
 Signals are deduplicated by `context_hash` and processed in a stable order.
 
 ### ✓ Aggregate context  
-Produce structured summaries without changing meaning.
+Produce structured summaries without changing upstream meaning.
 
-### ✓ Remain consensus‑neutral  
+### ✓ Remain consensus-neutral  
 DQSN observes and transports only.
 
 ---
 
-# 🧠 What DQSN Aggregates (Conceptual)
+# 🧠 What DQSN Aggregates (v3 Reality)
 
-DQSN does not generate raw telemetry itself in v3.
-Instead, it aggregates **signals produced by sensor layers**, such as:
+DQSN does **not generate telemetry** in v3.
 
-- risk decisions  
-- severity tiers  
-- reason codes  
-- component‑level summaries  
+It aggregates **signals produced by sensor layers**, including:
+- decisions (`ALLOW`, `WARN`, `BLOCK`, `ERROR`)
+- risk scores and tiers
+- reason codes
+- component-level summaries
 
-Legacy telemetry collection concepts are preserved in `docs/legacy/` for reference.
+Legacy telemetry collection concepts are preserved in `docs/legacy/`
+for historical reference only.
 
 ---
 
@@ -118,19 +122,19 @@ Legacy telemetry collection concepts are preserved in `docs/legacy/` for referen
 dqsnetwork/
 │
 ├── contracts/
-│     ├── v3_types.py
-│     ├── v3_reason_codes.py
-│     └── v3_hash.py
+│     ├── v3_types.py          # Strict schema & fail-closed validation
+│     ├── v3_reason_codes.py   # Canonical error taxonomy
+│     └── v3_hash.py           # Deterministic context hashing
 │
 ├── v3.py              # Shield Contract v3 evaluator
-├── v3_api.py          # FastAPI v3 route
-├── dqsn_core.py       # Legacy v2 API (unchanged)
+├── v3_api.py          # FastAPI v3 endpoint
+├── dqsn_core.py       # Legacy v2 API (preserved)
 │
 └── tests/
-      └── test_*       # Fail‑closed + determinism locks
+      └── test_*       # Determinism, dedup, fail-closed invariants
 ```
 
-The v3 contract surface is **explicit and isolated**.
+The v3 contract surface is **explicit, isolated, and CI-locked**.
 
 ---
 
@@ -152,8 +156,8 @@ The v3 contract surface is **explicit and isolated**.
 
 # 🛡️ Security Philosophy (v3)
 
-1. **Fail‑Closed First** — Invalid input never propagates  
-2. **Determinism** — Reproducible outputs by design  
+1. **Fail-Closed First** — Invalid input never propagates  
+2. **Determinism** — Same input, same output, always  
 3. **Separation of Authority** — DQSN never decides  
 4. **Minimal Surface** — Small, auditable contracts  
 5. **History Preserved** — Legacy docs archived, not erased  
@@ -168,10 +172,10 @@ DQSN v3 includes:
 - Strict contract parsing & validation
 - Deterministic hashing & deduplication
 - FastAPI v3 endpoint (`/dqsnet/v3/evaluate`)
-- Full hardening test suite
+- Full hardening test suite (CI-enforced)
 - Legacy v2 API preserved
 
-DQSN v3 is **integration‑ready**.
+DQSN v3 is **integration-ready and audit-clean**.
 
 ---
 
@@ -196,8 +200,8 @@ See `CONTRIBUTING.md`.
 
 Rules:
 - v3 contracts must not be weakened
-- fail‑closed behavior is mandatory
-- DQSN must remain transport‑only
+- fail-closed behavior is mandatory
+- DQSN must remain transport-only
 
 ---
 
