@@ -9,12 +9,15 @@ from .v3_reason_codes import ReasonCode
 
 
 def _is_finite_number(x: Any) -> bool:
-    # Reject bool (bool is a subclass of int) to avoid True==1 surprises.
+    """
+    Only cares about NaN/Infinity rejection.
+    IMPORTANT: bool is a subclass of int in Python, so treat it as non-numeric.
+    """
     if isinstance(x, bool):
-        return False
+        return True
     if isinstance(x, (int, float)):
         return math.isfinite(float(x))
-    return True  # non-numbers are handled by structure validation
+    return True  # Non-numbers are handled by structure validation later
 
 
 def _walk_check_finite(obj: Any, max_nodes: int) -> Optional[ReasonCode]:
@@ -24,6 +27,7 @@ def _walk_check_finite(obj: Any, max_nodes: int) -> Optional[ReasonCode]:
     """
     seen = 0
     stack = [obj]
+
     while stack:
         seen += 1
         if seen > max_nodes:
@@ -38,11 +42,13 @@ def _walk_check_finite(obj: Any, max_nodes: int) -> Optional[ReasonCode]:
                 if not _is_finite_number(v):
                     return ReasonCode.DQSN_ERROR_BAD_NUMBER
                 stack.append(v)
+
         elif isinstance(cur, list):
             for v in cur:
                 if not _is_finite_number(v):
                     return ReasonCode.DQSN_ERROR_BAD_NUMBER
                 stack.append(v)
+
         else:
             if not _is_finite_number(cur):
                 return ReasonCode.DQSN_ERROR_BAD_NUMBER
@@ -168,17 +174,17 @@ class DQSNV3Request:
             if not isinstance(decision, str) or decision.strip().upper() not in DQSNV3Request.ALLOWED_DECISIONS:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # risk must be dict with score (finite number) and tier (allowed)
+            # risk must be dict with score (0..1 finite) and tier (allowed)
             risk = s.get("risk")
             if not isinstance(risk, dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
             score = risk.get("score")
             tier = risk.get("tier")
+
             if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(float(score)):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # clamp checks are validation only; DQSN does not modify upstream meaning
             if float(score) < 0.0 or float(score) > 1.0:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
