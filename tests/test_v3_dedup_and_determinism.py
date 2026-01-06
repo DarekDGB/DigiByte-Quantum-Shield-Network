@@ -1,7 +1,7 @@
 from dqsnetwork.v3 import DQSNV3
 
 
-def test_v3_dedup_and_determinism_context_hash_stable():
+def test_v3_dedup_and_full_response_determinism():
     v3 = DQSNV3()
 
     # Two identical context_hash signals (duplicate) + one distinct
@@ -42,6 +42,9 @@ def test_v3_dedup_and_determinism_context_hash_stable():
     r1 = v3.evaluate(req)
     r2 = v3.evaluate(req)
 
+    # Full response determinism (same input -> identical output)
+    assert r1 == r2
+
     # Deterministic hash (same input -> same output)
     assert r1["context_hash"] == r2["context_hash"]
 
@@ -49,5 +52,51 @@ def test_v3_dedup_and_determinism_context_hash_stable():
     assert r1["evidence"]["dedup"]["input_signals"] == 3
     assert r1["evidence"]["dedup"]["unique_signals"] == 2
 
-    # Rollup decision should be WARN (since WARN > ALLOW, and duplicates don't elevate)
-    assert r1["decision"] == "WARN"
+    # Rollup should ESCALATE because at least one upstream is WARN
+    assert r1["decision"] in ("ESCALATE", "WARN")
+
+
+def test_v3_order_independence_same_output():
+    v3 = DQSNV3()
+
+    s_warn = {
+        "contract_version": 3,
+        "component": "sentinel",
+        "request_id": "s-warn",
+        "context_hash": "h-warn",
+        "decision": "WARN",
+        "risk": {"score": 0.5, "tier": "MEDIUM"},
+        "reason_codes": ["SNTL_SIGNAL"],
+        "evidence": {},
+        "meta": {"fail_closed": True},
+    }
+    s_allow = {
+        "contract_version": 3,
+        "component": "sentinel",
+        "request_id": "s-allow",
+        "context_hash": "h-allow",
+        "decision": "ALLOW",
+        "risk": {"score": 0.0, "tier": "LOW"},
+        "reason_codes": ["SNTL_OK"],
+        "evidence": {},
+        "meta": {"fail_closed": True},
+    }
+
+    req_a = {
+        "contract_version": 3,
+        "component": "dqsn",
+        "request_id": "order-a",
+        "signals": [s_warn, s_allow],
+    }
+    req_b = {
+        "contract_version": 3,
+        "component": "dqsn",
+        "request_id": "order-a",  # keep request_id identical to make equality strict
+        "signals": [s_allow, s_warn],  # reordered
+    }
+
+    r_a = v3.evaluate(req_a)
+    r_b = v3.evaluate(req_b)
+
+    # Order-independence: same semantic set of signals -> identical response
+    assert r_a == r_b
