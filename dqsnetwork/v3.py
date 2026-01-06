@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-import time
 
 from .contracts import (
     ReasonCode,
@@ -14,12 +13,13 @@ from .contracts import (
 @dataclass(frozen=True)
 class DQSNV3:
     """
-    DQSN — Shield Contract v3 evaluator.
+    DigiByte Quantum Shield Network (DQSN) v3 aggregator.
 
-    DQSN is transport-only:
+    Contract goals:
+    - accepts only v3 requests,
     - validates upstream v3 signals,
     - deduplicates by context_hash,
-    - aggregates summaries deterministically,
+    - aggregates evidence deterministically,
     - emits a v3 response envelope.
 
     It does NOT reinterpret upstream meaning.
@@ -29,57 +29,80 @@ class DQSNV3:
     CONTRACT_VERSION: int = 3
 
     def evaluate(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        start = time.time()
-
         # --- Hard version gate FIRST (outermost rule) ---
         if not isinstance(request, dict):
             return self._error_response(
                 request_id="unknown",
                 reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
                 details={"error": "request must be a dict"},
-                latency_ms=self._latency_ms(start),
+                latency_ms=0,
             )
 
-        if request.get("contract_version") != self.CONTRACT_VERSION:
-            return self._error_response(
-                request_id=str(request.get("request_id", "unknown")),
-                reason_code=ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value,
-                details={"error": "contract_version must be 3"},
-                latency_ms=self._latency_ms(start),
-            )
-
-        # --- Strict contract parsing (schema + hardening) ---
+        # --- Parse + validate request schema (fail-closed) ---
         try:
-            req = DQSNV3Request.from_dict(request)
-        except ValueError as e:
-            reason = str(e) or ReasonCode.DQSN_ERROR_INVALID_REQUEST.value
+            req = DQSNV3Request(**request)
+        except Exception as e:
             return self._error_response(
-                request_id=str(request.get("request_id", "unknown")),
-                reason_code=reason,
-                details={"error": reason},
-                latency_ms=self._latency_ms(start),
-            )
-        except Exception:
-            return self._error_response(
-                request_id=str(request.get("request_id", "unknown")),
+                request_id=request.get("request_id", "unknown"),
                 reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
-                details={"error": "invalid request"},
-                latency_ms=self._latency_ms(start),
+                details={"error": f"invalid request schema: {e}"},
+                latency_ms=0,
             )
 
-        # Component hard check
-        if req.component != self.COMPONENT:
+        # --- Validate upstream signals (fail-closed) ---
+        if not isinstance(req.signals, list):
             return self._error_response(
                 request_id=req.request_id,
-                reason_code=ReasonCode.DQSN_ERROR_COMPONENT_MISMATCH.value,
-                details={"error": "component mismatch"},
-                latency_ms=self._latency_ms(start),
+                reason_code=ReasonCode.DQSN_ERROR_INVALID_SIGNALS.value,
+                details={"error": "signals must be a list"},
+                latency_ms=0,
             )
 
-        # Deduplicate deterministically by context_hash preserving first-seen order
+        validated_signals: List[Dict[str, Any]] = []
+        for s in req.signals:
+            if not isinstance(s, dict):
+                return self._error_response(
+                    request_id=req.request_id,
+                    reason_code=ReasonCode.DQSN_ERROR_INVALID_SIGNALS.value,
+                    details={"error": "each signal must be a dict"},
+                    latency_ms=0,
+                )
+
+            # v3 signals must include a stable context_hash.
+            if "context_hash" not in s or not s.get("context_hash"):
+                return self._error_response(
+                    request_id=req.request_id,
+                    reason_code=ReasonCode.DQSN_ERROR_MISSING_CONTEXT_HASH.value,
+                    details={"error": "signal missing context_hash"},
+                    latency_ms=0,
+                )
+
+            # contract_version must be present and must be int-like == 3
+            cv = s.get("contract_version", None)
+            try:
+                cv_int = int(cv)
+            except Exception:
+                return self._error_response(
+                    request_id=req.request_id,
+                    reason_code=ReasonCode.DQSN_ERROR_INVALID_CONTRACT_VERSION.value,
+                    details={"error": "signal contract_version must be int-like"},
+                    latency_ms=0,
+                )
+
+            if cv_int != self.CONTRACT_VERSION:
+                return self._error_response(
+                    request_id=req.request_id,
+                    reason_code=ReasonCode.DQSN_ERROR_INVALID_CONTRACT_VERSION.value,
+                    details={"error": f"signal contract_version must be {self.CONTRACT_VERSION}"},
+                    latency_ms=0,
+                )
+
+            validated_signals.append(s)
+
+        # --- Deduplicate by context_hash (stable) ---
         unique_signals: List[Dict[str, Any]] = []
         seen: set[str] = set()
-        for s in req.signals:
+        for s in validated_signals:
             ch = str(s.get("context_hash"))
             if ch in seen:
                 continue
@@ -92,6 +115,7 @@ class DQSNV3:
         # Determine DQSN decision (deny-by-default severity rollup)
         decision = self._rollup_decision(unique_signals)
 
+        # --- Deterministic context_hash for the full DQSN response ---
         context_hash = canonical_sha256(
             {
                 "component": self.COMPONENT,
@@ -101,7 +125,11 @@ class DQSNV3:
             }
         )
 
-        reason_codes = [ReasonCode.DQSN_SIGNAL_AGGREGATED.value] if unique_signals else [ReasonCode.DQSN_OK.value]
+        reason_codes = (
+            [ReasonCode.DQSN_SIGNAL_AGGREGATED.value]
+            if unique_signals
+            else [ReasonCode.DQSN_OK.value]
+        )
 
         return {
             "contract_version": self.CONTRACT_VERSION,
@@ -117,19 +145,38 @@ class DQSNV3:
                     "unique_signals": len(unique_signals),
                 },
             },
+            # v3 glass-box requirement: deterministic response envelope
             "meta": {
-                "latency_ms": self._latency_ms(start),
+                "latency_ms": 0,
                 "fail_closed": True,
             },
         }
 
-    # ----------------------------
-    # Helpers (deterministic)
-    # ----------------------------
-
     @staticmethod
-    def _latency_ms(start: float) -> int:
-        return int((time.time() - start) * 1000)
+    def _rollup_decision(signals: List[Dict[str, Any]]) -> str:
+        """
+        DQSN does NOT reinterpret signals.
+        It performs a conservative rollup based on upstream decisions.
+
+        Rule (simple deny-by-default rollup):
+        - If ANY upstream is DENY / BLOCK / CRITICAL -> "DENY"
+        - Else if ANY upstream is ESCALATE / WARN / DELAY -> "ESCALATE"
+        - Else -> "ALLOW"
+        """
+        deny_tokens = {"DENY", "BLOCK", "CRITICAL"}
+        escalate_tokens = {"ESCALATE", "WARN", "DELAY"}
+
+        for s in signals:
+            d = str(s.get("decision", "UNKNOWN")).upper()
+            if d in deny_tokens:
+                return "DENY"
+
+        for s in signals:
+            d = str(s.get("decision", "UNKNOWN")).upper()
+            if d in escalate_tokens:
+                return "ESCALATE"
+
+        return "ALLOW"
 
     @staticmethod
     def _canonical_signals_for_hash(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -143,10 +190,8 @@ class DQSNV3:
                 {
                     "contract_version": s.get("contract_version"),
                     "component": s.get("component"),
-                    "request_id": s.get("request_id"),
                     "context_hash": s.get("context_hash"),
                     "decision": s.get("decision"),
-                    "risk": s.get("risk"),
                     "reason_codes": s.get("reason_codes"),
                 }
             )
@@ -168,28 +213,15 @@ class DQSNV3:
             "counts_by_component": counts_by_component,
         }
 
-    @staticmethod
-    def _rollup_decision(signals: List[Dict[str, Any]]) -> str:
-        """
-        Roll up decision conservatively:
-        ERROR > BLOCK > WARN > ALLOW.
-        If no signals, return ALLOW (no evidence of risk).
-        """
-        if not signals:
-            return "ALLOW"
-
-        severity = {"ALLOW": 0, "WARN": 1, "BLOCK": 2, "ERROR": 3}
-        best = 0
-        best_label = "ALLOW"
-        for s in signals:
-            d = str(s.get("decision", "BLOCK")).upper()
-            score = severity.get(d, 2)  # unknown -> BLOCK
-            if score > best:
-                best = score
-                best_label = d
-        return best_label
-
-    def _error_response(self, request_id: str, reason_code: str, details: Dict[str, Any], latency_ms: int) -> Dict[str, Any]:
+    def _error_response(
+        self,
+        request_id: str,
+        reason_code: str,
+        details: Dict[str, Any],
+        latency_ms: int,
+    ) -> Dict[str, Any]:
+        # Deterministic error envelope:
+        # - stable context_hash from stable fields only
         context_hash = canonical_sha256(
             {
                 "component": self.COMPONENT,
@@ -206,5 +238,5 @@ class DQSNV3:
             "decision": "ERROR",
             "reason_codes": [reason_code],
             "evidence": {"details": details},
-            "meta": {"latency_ms": int(latency_ms), "fail_closed": True},
+            "meta": {"latency_ms": 0, "fail_closed": True},
         }
