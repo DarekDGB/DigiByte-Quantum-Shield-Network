@@ -1,26 +1,26 @@
 from __future__ import annotations
 
 """
-DigiByte Quantum Shield Network (DQSN) – Core Engine
+DigiByte Quantum Shield Network (DQSN) – Core Engine (LEGACY)
 MIT Licensed — (c) 2025 DarekDGB and contributors
 
-This module implements a lightweight, self-contained prototype of the
-DQSN risk-scoring engine. It does NOT talk to a real DigiByte node yet.
-Instead, it focuses on:
+⚠️ LEGACY MODULE — NOT PART OF SHIELD CONTRACT v3
+Authoritative v3 entrypoint: dqsnetwork.v3.DQSNV3
 
-- Entropy analysis of signature / nonce bytes
-- Simple repetition and pattern analysis
-- Multi-factor quantum risk scoring
-- Classification into 4 shield levels:
-  "normal" → "elevated" → "high" → "critical"
-
-The module is written to be easy for DigiByte core developers to
-integrate later (C++/Rust/Go bindings, RPC hooks, etc.).
+This module is preserved for historical reference only.
+It is NOT imported by the dqsnetwork v3 contract surface.
 """
 
 from dataclasses import dataclass
 from math import log2
-from typing import Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+# ✅ Legacy can depend on active package via ABSOLUTE import.
+# Keep it inside a try to avoid breaking imports if the active module changes later.
+try:
+    from dqsnetwork.adaptive_bridge import build_adaptive_event_from_score
+except Exception:  # pragma: no cover
+    build_adaptive_event_from_score = None  # type: ignore
 
 
 # ---------------------------------------------------------------------------
@@ -141,15 +141,6 @@ def _normalize_alerts(count: int) -> float:
 def compute_risk(input: QuantumRiskInput) -> QuantumRiskResult:
     """
     Combine multiple observable indicators into a single risk score.
-
-    The model below is intentionally simple and transparent. In future
-    versions this can be replaced by:
-
-    - A gradient-boosted tree model
-    - A small neural net
-    - A hand-tuned rules engine
-
-    ...without changing the external API.
     """
     # Normalize factors into 0..1
     f_entropy = _normalize_entropy(input.sig_entropy)
@@ -180,18 +171,12 @@ def compute_risk(input: QuantumRiskInput) -> QuantumRiskResult:
     risk = max(0.0, min(1.0, risk))
 
     level = classify_level(risk)
-
     return QuantumRiskResult(risk_score=risk, level=level, factors=factors)
 
 
 def classify_level(risk_score: float) -> str:
     """
     Map risk score into discrete shield levels.
-
-    0.00 – 0.24 → "normal"
-    0.25 – 0.49 → "elevated"
-    0.50 – 0.74 → "high"
-    0.75 – 1.00 → "critical"
     """
     if risk_score < 0.25:
         return "normal"
@@ -202,11 +187,6 @@ def classify_level(risk_score: float) -> str:
     return "critical"
 
 
-# ---------------------------------------------------------------------------
-# Convenience helpers / simple API
-# ---------------------------------------------------------------------------
-
-
 def analyze_signature(
     signature_bytes: bytes,
     mempool_spike: float = 0.0,
@@ -215,9 +195,6 @@ def analyze_signature(
 ) -> QuantumRiskResult:
     """
     High-level helper for analyzing a single signature + context.
-
-    This is the function a DigiByte node, Sentinel AI module or
-    external firewall would typically call.
     """
     ent = shannon_entropy(signature_bytes)
     rep = repetition_ratio(signature_bytes)
@@ -229,85 +206,23 @@ def analyze_signature(
         reorg_depth=reorg_depth,
         cross_chain_alerts=cross_chain_alerts,
     )
-
     return compute_risk(q_input)
 
 
 # ---------------------------------------------------------------------------
-# Self-test / demo
+# Adaptive Core bridge helper (legacy)
 # ---------------------------------------------------------------------------
 
-
-def _demo_signatures() -> Tuple[QuantumRiskResult, QuantumRiskResult]:
+def to_adaptive_event_from_score(score: float, ctx: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Run a tiny demo comparing a "good" random signature vs
-    a "suspicious" low-entropy one.
+    Legacy helper: convert risk score into an Adaptive Core event.
+
+    If the active bridge is unavailable, returns a deterministic placeholder.
     """
-    import os
-
-    # 64 random bytes: high entropy, low repetition
-    good_sig = os.urandom(64)
-
-    # 64 bytes but with very low variability
-    bad_sig = b"\x01" * 48 + os.urandom(16)
-
-    good_result = analyze_signature(good_sig)
-    bad_result = analyze_signature(
-        bad_sig,
-        mempool_spike=0.8,       # big spike
-        reorg_depth=5,           # deep reorg
-        cross_chain_alerts=4,    # several alerts
-    )
-
-    return good_result, bad_result
-
-
-if __name__ == "__main__":
-    g, b = _demo_signatures()
-
-    print("Good signature:")
-    print(f"  risk_score = {g.risk_score:.3f}")
-    print(f"  level      = {g.level}")
-    print(f"  factors    = {g.factors}")
-
-    print("\nSuspicious signature:")
-    print(f"  risk_score = {b.risk_score:.3f}")
-    print(f"  level      = {b.level}")
-    print(f"  factors    = {b.factors}")
-
-# --------------------------------------------------------------------------- #
-# Adaptive Core bridge helper
-# --------------------------------------------------------------------------- #
-
-from typing import Any, Callable, Optional
-
-from .adaptive_bridge import build_adaptive_event_from_score
-
-
-def emit_adaptive_event_from_network_score(
-    score: float,
-    *,
-    chain_id: str = "DigiByte-mainnet",
-    window_seconds: int = 60,
-    meta: Optional[dict] = None,
-    sink: Optional[Callable[[Any], None]] = None,
-) -> None:
-    """
-    Convert a DQSN network score into an AdaptiveEvent and optionally send it
-    to an external sink (for example, the Adaptive Core writer API).
-
-    This keeps DQSN decoupled from the adaptive_core package:
-      - adaptive_bridge.build_adaptive_event_from_score() knows how to build
-        the AdaptiveEvent instance
-      - DQSN only needs to call this helper and pass the resulting event to
-        whatever sink is configured.
-    """
-    event = build_adaptive_event_from_score(
-        score=score,
-        chain_id=chain_id,
-        window_seconds=window_seconds,
-        extra_meta=meta or {},
-    )
-
-    if sink is not None:
-        sink(event)
+    if build_adaptive_event_from_score is None:
+        return {
+            "event_type": "DQSN_LEGACY_ADAPTIVE_EVENT_UNAVAILABLE",
+            "score": float(score),
+            "ctx": ctx or {},
+        }
+    return build_adaptive_event_from_score(float(score), ctx or {})
