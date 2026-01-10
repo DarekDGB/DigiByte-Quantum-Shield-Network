@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Tuple
 
 from .contracts.v3_hash import canonical_sha256
@@ -98,6 +99,21 @@ class DQSNV3:
         # Validate signals (fail-closed on first invalid)
         validated: List[Dict[str, Any]] = []
         for s in req.signals:
+            # ✅ v3_types returns UpstreamSignalV3 dataclasses. Normalize to dict deterministically.
+            if not isinstance(s, dict):
+                if is_dataclass(s):
+                    s = asdict(s)
+                elif hasattr(s, "__dict__") and isinstance(getattr(s, "__dict__"), dict):
+                    s = dict(getattr(s, "__dict__"))
+                else:
+                    return self._error(
+                        request_id=req.request_id,
+                        reason_code=ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value,
+                        latency_ms=latency_ms,
+                        input_signals=len(req.signals),
+                        unique_signals=0,
+                    )
+
             ok, reason = self._validate_upstream_signal(s)
             if not ok:
                 return self._error(
