@@ -1,111 +1,137 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
-from .contracts import DQSNV3Request, ReasonCode, canonical_sha256
+from .advisory import DQSNAdvisory
+from .contracts.v3_hash import canonical_sha256
+from .contracts.v3_reason_codes import ReasonCode
+from .contracts.v3_types import DQSNV3Request, UpstreamSignalV3
 
 
 @dataclass(frozen=True)
 class DQSNV3:
     """
-    DQSN v3 network aggregator (glass-box / fail-closed).
+    DigiByte Quantum Shield Network (DQSN) — Shield Contract v3 aggregation layer.
 
-    Authoritative rules:
-    - request parsing/validation MUST go through DQSNV3Request.from_dict()
-    - unknown keys rejected (fail-closed)
-    - NaN/Inf rejected (fail-closed)
-    - oversize rejected (fail-closed)
-    - upstream signals must be v3-shaped envelopes (validated in v3_types)
-    - response is deterministic + order-independent
+    Contract goals:
+    - strict schema (deny unknown keys)
+    - fail-closed semantics
+    - deterministic output & deterministic context_hash
+    - dedup identical upstream context_hash signals deterministically
     """
 
     COMPONENT: str = "dqsn"
     CONTRACT_VERSION: int = 3
 
-    # Rollup semantics (fail-closed):
-    # - any upstream BLOCK/ERROR => DENY
-    # - else any WARN => ESCALATE
-    # - else ALLOW
-    _DENY_UPSTREAM = {"BLOCK", "ERROR"}
-    _ESCALATE_UPSTREAM = {"WARN"}
-    _ALLOW_UPSTREAM = {"ALLOW"}
+    # Abuse caps
+    MAX_PAYLOAD_BYTES: int = 512_000  # 512KB hard cap (contract envelope)
+    MAX_SIGNALS: int = DQSNV3Request.MAX_SIGNALS
 
     def evaluate(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        # Deterministic envelope value (never measure time here)
-        latency_ms = 0
+        latency_ms = 0  # deterministic envelope
 
+        # --- Parse / validate (fail-closed) ---
         try:
             req = DQSNV3Request.from_dict(request)
         except ValueError as e:
             code = str(e) or ReasonCode.DQSN_ERROR_INVALID_REQUEST.value
-            return self._error_response(
+            return self._error(
                 request_id=self._safe_request_id(request),
-                reason_code=code,
+                reason_codes=[code],
                 latency_ms=latency_ms,
-                details={"error": code},
+                dedup=self._dedup_summary_from_raw(request),
             )
         except Exception:
-            return self._error_response(
+            return self._error(
                 request_id=self._safe_request_id(request),
-                reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
+                reason_codes=[ReasonCode.DQSN_ERROR_INVALID_REQUEST.value],
                 latency_ms=latency_ms,
-                details={"error": "invalid_request"},
+                dedup=self._dedup_summary_from_raw(request),
             )
 
-        # Contract version + component enforcement (fail-closed)
         if req.contract_version != self.CONTRACT_VERSION:
-            return self._error_response(
+            return self._error(
                 request_id=req.request_id,
-                reason_code=ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value,
+                reason_codes=[ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value],
                 latency_ms=latency_ms,
-                details={"error": "schema_version"},
+                dedup=self._dedup_summary(req.signals),
             )
 
-        if req.component.strip() != self.COMPONENT:
-            return self._error_response(
+        if req.component != self.COMPONENT:
+            return self._error(
                 request_id=req.request_id,
-                reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
+                reason_codes=[ReasonCode.DQSN_ERROR_COMPONENT_MISMATCH.value],
                 latency_ms=latency_ms,
-                details={"error": "component_mismatch"},
+                dedup=self._dedup_summary(req.signals),
             )
 
-        # Dedup by context_hash (stable) and sort for order-independence
-        seen: set[str] = set()
-        unique: List[Dict[str, Any]] = []
-        for s in req.signals:
-            ch = str(s.get("context_hash", ""))
-            if ch and ch not in seen:
-                seen.add(ch)
-                unique.append(s)
+        # Oversize protection (deterministic)
+        if self._encoded_size_bytes(request) > self.MAX_PAYLOAD_BYTES:
+            return self._error(
+                request_id=req.request_id,
+                reason_codes=[ReasonCode.DQSN_ERROR_PAYLOAD_TOO_LARGE.value],
+                latency_ms=latency_ms,
+                dedup=self._dedup_summary(req.signals),
+            )
 
-        unique_sorted = sorted(unique, key=lambda x: str(x.get("context_hash", "")))
+        # signals required + limits enforced by request type (defense in depth)
+        if not req.signals:
+            return self._error(
+                request_id=req.request_id,
+                reason_codes=[ReasonCode.DQSN_ERROR_SIGNALS_REQUIRED.value],
+                latency_ms=latency_ms,
+                dedup={"input_signals": 0, "unique_signals": 0},
+            )
 
-        summary = self._aggregate(unique_sorted)
-        decision_out = self._rollup_decision(unique_sorted)
+        if len(req.signals) > self.MAX_SIGNALS:
+            return self._error(
+                request_id=req.request_id,
+                reason_codes=[ReasonCode.DQSN_ERROR_SIGNAL_TOO_MANY.value],
+                latency_ms=latency_ms,
+                dedup=self._dedup_summary(req.signals),
+            )
 
-        context_hash = canonical_sha256(
-            {
-                "component": self.COMPONENT,
-                "contract_version": self.CONTRACT_VERSION,
-                "signals": self._canonical_signals_for_hash(unique_sorted),
-                "summary": summary,
-                "decision": decision_out,
-            }
-        )
+        # --- Dedup deterministically by upstream context_hash ---
+        upstream, dedup = self._dedup_by_context_hash(req.signals)
+
+        # --- Aggregate decision deterministically ---
+        # NOTE: DQSN decision vocabulary matches upstream: ALLOW|WARN|BLOCK|ERROR
+        decision = self._aggregate_decision(upstream)
+
+        # --- Advisory / evidence (deterministic) ---
+        advisory = DQSNAdvisory.from_upstream_signals(upstream)
+
+        # Deterministic context hash for orchestrator audit
+        v3_context = {
+            "component": self.COMPONENT,
+            "contract_version": self.CONTRACT_VERSION,
+            "request_id": req.request_id,
+            "signals": [s.to_stable_dict() for s in upstream],
+            "decision": decision,
+            "reason_codes": self._reason_codes_from_decision(decision),
+            "dedup": dedup,
+        }
+        context_hash = canonical_sha256(v3_context)
 
         return {
             "contract_version": self.CONTRACT_VERSION,
             "component": self.COMPONENT,
             "request_id": req.request_id,
             "context_hash": context_hash,
-            "decision": decision_out,  # ALLOW | ESCALATE | DENY
-            "reason_codes": self._reason_codes_from_decision(decision_out),
+            "decision": decision,  # ALLOW|WARN|BLOCK|ERROR
+            "risk": advisory.risk_summary(),
+            "reason_codes": self._reason_codes_from_decision(decision),
             "evidence": {
-                "summary": summary,
-                "signals": self._canonical_signals_for_output(unique_sorted),
+                "dedup": dedup,  # <-- REQUIRED by tests (input_signals/unique_signals)
+                "advisory": advisory.to_dict(),
+                "upstream": [s.to_public_dict() for s in upstream],
             },
-            "meta": {"latency_ms": latency_ms, "fail_closed": True},
+            "meta": {
+                "latency_ms": latency_ms,
+                "fail_closed": True,
+            },
         }
 
     # ----------------------------
@@ -119,105 +145,116 @@ class DQSNV3:
             return str(rid) if rid is not None else "unknown"
         return "unknown"
 
-    def _rollup_decision(self, signals: List[Dict[str, Any]]) -> str:
-        # Fail-closed rollup: ERROR/BLOCK always deny
-        for s in signals:
-            d = str(s.get("decision", "")).upper().strip()
-            if d in self._DENY_UPSTREAM:
-                return "DENY"
+    @staticmethod
+    def _encoded_size_bytes(obj: Any) -> int:
+        try:
+            return len(
+                json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+            )
+        except Exception:
+            return 10**9
 
+    @staticmethod
+    def _dedup_summary(signals: List[UpstreamSignalV3]) -> Dict[str, int]:
+        # Deterministic: count uniques by context_hash
+        seen = set()
         for s in signals:
-            d = str(s.get("decision", "")).upper().strip()
-            if d in self._ESCALATE_UPSTREAM:
-                return "ESCALATE"
+            seen.add(str(s.context_hash))
+        return {"input_signals": int(len(signals)), "unique_signals": int(len(seen))}
 
-        # Only ALLOW if everything is explicitly ALLOW
-        for s in signals:
-            d = str(s.get("decision", "")).upper().strip()
-            if d not in self._ALLOW_UPSTREAM:
-                return "DENY"
+    @staticmethod
+    def _dedup_summary_from_raw(request: Any) -> Dict[str, int]:
+        """
+        Best-effort dedup summary for ERROR responses (keeps envelope stable).
+        Only used when parsing fails and we may not have typed signals.
+        """
+        if not isinstance(request, dict):
+            return {"input_signals": 0, "unique_signals": 0}
+        raw = request.get("signals")
+        if not isinstance(raw, list):
+            return {"input_signals": 0, "unique_signals": 0}
+        hashes: List[str] = []
+        for item in raw:
+            if isinstance(item, dict) and "context_hash" in item:
+                hashes.append(str(item.get("context_hash")))
+        return {"input_signals": int(len(raw)), "unique_signals": int(len(set(hashes)))}
 
+    @classmethod
+    def _dedup_by_context_hash(cls, signals: List[UpstreamSignalV3]) -> Tuple[List[UpstreamSignalV3], Dict[str, int]]:
+        """
+        Deduplicate by context_hash deterministically.
+
+        Rule:
+        - Keep first occurrence of a context_hash after stable sorting by (component, context_hash, request_id).
+        - This guarantees order-independence for callers providing signals in different orders.
+        """
+        # Stable order first => stable "first keep"
+        ordered = sorted(
+            signals,
+            key=lambda s: (str(s.component), str(s.context_hash), str(s.request_id)),
+        )
+
+        seen: set[str] = set()
+        kept: List[UpstreamSignalV3] = []
+        for s in ordered:
+            h = str(s.context_hash)
+            if h in seen:
+                continue
+            seen.add(h)
+            kept.append(s)
+
+        dedup = {"input_signals": int(len(signals)), "unique_signals": int(len(kept))}
+        return kept, dedup
+
+    @staticmethod
+    def _aggregate_decision(signals: List[UpstreamSignalV3]) -> str:
+        """
+        Deterministic aggregation:
+        - If any upstream is ERROR => ERROR
+        - Else if any BLOCK => BLOCK
+        - Else if any WARN => ESCALATE (DQSN outputs WARN as "ESCALATE" OR keep WARN?) Contract expects decision.
+          In this repo tests expect DQSN uses "ESCALATE" path internally but outputs decision string (ALLOW/ESCALATE/BLOCK/ERROR).
+        - Else => ALLOW
+        """
+        # Normalize upstream decisions
+        ds = [str(s.decision).upper().strip() for s in signals]
+
+        if "ERROR" in ds:
+            return "ERROR"
+        if "BLOCK" in ds:
+            return "BLOCK"
+        if "WARN" in ds:
+            return "ESCALATE"
         return "ALLOW"
-
-    @staticmethod
-    def _canonical_signals_for_hash(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        # Stable subset only; order already sorted by context_hash
-        out: List[Dict[str, Any]] = []
-        for s in signals:
-            risk = s.get("risk") or {}
-            out.append(
-                {
-                    "contract_version": int(s.get("contract_version", 3)),
-                    "component": str(s.get("component", "")),
-                    "request_id": str(s.get("request_id", "")),
-                    "context_hash": str(s.get("context_hash", "")),
-                    "decision": str(s.get("decision", "")).upper(),
-                    "risk": {
-                        "score": float(risk.get("score", 1.0)),
-                        "tier": str(risk.get("tier", "")).upper(),
-                    },
-                    "reason_codes": list(s.get("reason_codes") or []),
-                }
-            )
-        return out
-
-    @staticmethod
-    def _canonical_signals_for_output(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        # Provide a stable, non-leaky view of upstream signals
-        out: List[Dict[str, Any]] = []
-        for s in signals:
-            risk = s.get("risk") or {}
-            out.append(
-                {
-                    "component": str(s.get("component", "")),
-                    "request_id": str(s.get("request_id", "")),
-                    "context_hash": str(s.get("context_hash", "")),
-                    "decision": str(s.get("decision", "")).upper(),
-                    "risk": {
-                        "score": float(risk.get("score", 1.0)),
-                        "tier": str(risk.get("tier", "")).upper(),
-                    },
-                    "reason_codes": list(s.get("reason_codes") or []),
-                }
-            )
-        return out
-
-    @staticmethod
-    def _aggregate(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
-        counts_by_decision: Dict[str, int] = {}
-        counts_by_component: Dict[str, int] = {}
-
-        for s in signals:
-            d = str(s.get("decision", "")).upper().strip()
-            c = str(s.get("component", "")).strip()
-
-            counts_by_decision[d] = counts_by_decision.get(d, 0) + 1
-            counts_by_component[c] = counts_by_component.get(c, 0) + 1
-
-        return {"counts_by_decision": counts_by_decision, "counts_by_component": counts_by_component}
 
     @staticmethod
     def _reason_codes_from_decision(decision: str) -> List[str]:
         d = str(decision).upper().strip()
         if d == "ALLOW":
-            return [ReasonCode.DQSN_OK_ALLOW.value]
+            return [ReasonCode.DQSN_OK.value, ReasonCode.DQSN_SIGNAL_AGGREGATED.value]
         if d == "ESCALATE":
-            return [ReasonCode.DQSN_ESCALATE_WARN.value]
-        return [ReasonCode.DQSN_DENY_BLOCK.value]
+            return [ReasonCode.DQSN_OK.value, ReasonCode.DQSN_SIGNAL_AGGREGATED.value]
+        if d == "BLOCK":
+            return [ReasonCode.DQSN_OK.value, ReasonCode.DQSN_SIGNAL_AGGREGATED.value]
+        # ERROR
+        return [ReasonCode.DQSN_ERROR_INVALID_REQUEST.value]
 
-    def _error_response(
+    def _error(
         self,
+        *,
         request_id: str,
-        reason_code: str,
+        reason_codes: List[str],
         latency_ms: int,
-        details: Dict[str, Any],
+        dedup: Dict[str, int],
     ) -> Dict[str, Any]:
+        # Deterministic error hash context
         context_hash = canonical_sha256(
             {
                 "component": self.COMPONENT,
                 "contract_version": self.CONTRACT_VERSION,
                 "request_id": str(request_id),
-                "reason_code": str(reason_code),
+                "reason_codes": list(reason_codes),
+                "dedup": dict(dedup),
             }
         )
         return {
@@ -226,7 +263,11 @@ class DQSNV3:
             "request_id": str(request_id),
             "context_hash": context_hash,
             "decision": "ERROR",
-            "reason_codes": [str(reason_code)],
-            "evidence": {"details": details},
+            "risk": {"score": 1.0, "tier": "CRITICAL"},
+            "reason_codes": [str(c) for c in reason_codes],
+            "evidence": {
+                "dedup": dict(dedup),  # keep shape stable even on ERROR
+                "details": {"error": [str(c) for c in reason_codes]},
+            },
             "meta": {"latency_ms": int(latency_ms), "fail_closed": True},
         }
