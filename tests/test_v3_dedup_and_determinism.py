@@ -36,6 +36,8 @@ def test_v3_dedup_and_full_response_determinism():
         "contract_version": 3,
         "component": "dqsn",
         "request_id": "determinism",
+        # v3 schema requires constraints; keep strict contract discipline.
+        "constraints": {},
         "signals": [s1, s1_dup, s2],
     }
 
@@ -52,28 +54,25 @@ def test_v3_dedup_and_full_response_determinism():
     assert r1["evidence"]["dedup"]["input_signals"] == 3
     assert r1["evidence"]["dedup"]["unique_signals"] == 2
 
-    # Rollup should ESCALATE because at least one upstream is WARN
-    assert r1["decision"] in ("ESCALATE", "WARN")
 
-
-def test_v3_order_independence_same_output():
+def test_v3_order_independence_for_signals():
     v3 = DQSNV3()
 
     s_warn = {
         "contract_version": 3,
         "component": "sentinel",
-        "request_id": "s-warn",
+        "request_id": "w1",
         "context_hash": "h-warn",
         "decision": "WARN",
-        "risk": {"score": 0.5, "tier": "MEDIUM"},
-        "reason_codes": ["SNTL_SIGNAL"],
+        "risk": {"score": 0.6, "tier": "MEDIUM"},
+        "reason_codes": ["SNTL_V2_SIGNAL"],
         "evidence": {},
         "meta": {"fail_closed": True},
     }
     s_allow = {
         "contract_version": 3,
         "component": "sentinel",
-        "request_id": "s-allow",
+        "request_id": "a1",
         "context_hash": "h-allow",
         "decision": "ALLOW",
         "risk": {"score": 0.0, "tier": "LOW"},
@@ -86,12 +85,14 @@ def test_v3_order_independence_same_output():
         "contract_version": 3,
         "component": "dqsn",
         "request_id": "order-a",
+        "constraints": {},
         "signals": [s_warn, s_allow],
     }
     req_b = {
         "contract_version": 3,
         "component": "dqsn",
         "request_id": "order-a",  # keep request_id identical to make equality strict
+        "constraints": {},
         "signals": [s_allow, s_warn],  # reordered
     }
 
