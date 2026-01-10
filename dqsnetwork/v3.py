@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from .contracts.v3_hash import canonical_sha256
 from .contracts.v3_reason_codes import ReasonCode
@@ -26,6 +26,8 @@ class DQSNV3:
 
     # deterministic abuse caps
     MAX_PAYLOAD_BYTES: int = 512_000  # 512KB
+
+    # Backstop cap (primary enforcement should live in DQSNV3Request.MAX_SIGNALS)
     MAX_SIGNALS: int = 128
 
     # Upstream contract decisions we accept (contract-stable)
@@ -41,6 +43,8 @@ class DQSNV3:
                 request_id=self._safe_request_id(request),
                 reason_code=ReasonCode.DQSN_ERROR_PAYLOAD_TOO_LARGE.value,
                 latency_ms=latency_ms,
+                input_signals=0,
+                unique_signals=0,
             )
 
         try:
@@ -51,12 +55,16 @@ class DQSNV3:
                 request_id=self._safe_request_id(request),
                 reason_code=code,
                 latency_ms=latency_ms,
+                input_signals=len(request.get("signals", [])) if isinstance(request, dict) else 0,
+                unique_signals=0,
             )
         except Exception:
             return self._error(
                 request_id=self._safe_request_id(request),
                 reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
                 latency_ms=latency_ms,
+                input_signals=len(request.get("signals", [])) if isinstance(request, dict) else 0,
+                unique_signals=0,
             )
 
         if req.contract_version != self.CONTRACT_VERSION:
@@ -64,6 +72,8 @@ class DQSNV3:
                 request_id=req.request_id,
                 reason_code=ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value,
                 latency_ms=latency_ms,
+                input_signals=len(req.signals),
+                unique_signals=0,
             )
 
         if req.component != self.COMPONENT:
@@ -71,13 +81,18 @@ class DQSNV3:
                 request_id=req.request_id,
                 reason_code=ReasonCode.DQSN_ERROR_INVALID_REQUEST.value,
                 latency_ms=latency_ms,
+                input_signals=len(req.signals),
+                unique_signals=0,
             )
 
-        if len(req.signals) > self.MAX_SIGNALS:
+        # Signal cap: primary limit is enforced in DQSNV3Request.MAX_SIGNALS, but keep backstop.
+        if len(req.signals) > min(self.MAX_SIGNALS, getattr(DQSNV3Request, "MAX_SIGNALS", self.MAX_SIGNALS)):
             return self._error(
                 request_id=req.request_id,
                 reason_code=ReasonCode.DQSN_ERROR_SIGNAL_TOO_MANY.value,
                 latency_ms=latency_ms,
+                input_signals=len(req.signals),
+                unique_signals=0,
             )
 
         # Validate signals (fail-closed on first invalid)
@@ -89,6 +104,8 @@ class DQSNV3:
                     request_id=req.request_id,
                     reason_code=reason,
                     latency_ms=latency_ms,
+                    input_signals=len(req.signals),
+                    unique_signals=0,
                 )
             validated.append(s)
 
@@ -104,7 +121,9 @@ class DQSNV3:
         unique_count = len(unique_signals)
 
         # Stable sort for order-independence
-        unique_signals.sort(key=lambda x: (str(x.get("component", "")), str(x.get("context_hash", ""))))
+        unique_signals.sort(
+            key=lambda x: (str(x.get("component", "")), str(x.get("context_hash", "")))
+        )
 
         # Aggregate decision: BLOCK/ERROR dominates, then WARN, else ALLOW
         decision_out = self._aggregate_decision(unique_signals)
@@ -163,7 +182,16 @@ class DQSNV3:
         if not self._walk_check_finite(s):
             return False, ReasonCode.DQSN_ERROR_BAD_NUMBER.value
 
-        required = {"contract_version", "component", "request_id", "context_hash", "decision", "risk", "reason_codes", "meta"}
+        required = {
+            "contract_version",
+            "component",
+            "request_id",
+            "context_hash",
+            "decision",
+            "risk",
+            "reason_codes",
+            "meta",
+        }
         if any(k not in s for k in required):
             return False, ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value
 
@@ -192,7 +220,7 @@ class DQSNV3:
 
         score = risk.get("score")
         tier = risk.get("tier")
-        if not isinstance(score, (int, float)):
+        if not isinstance(score, (int, float)) or isinstance(score, bool):
             return False, ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value
         if not math.isfinite(float(score)):
             return False, ReasonCode.DQSN_ERROR_BAD_NUMBER.value
@@ -247,7 +275,11 @@ class DQSNV3:
     @staticmethod
     def _encoded_size_bytes(obj: Any) -> int:
         try:
-            return len(json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+            return len(
+                json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+                    "utf-8"
+                )
+            )
         except Exception:
             return 10**9
 
@@ -318,7 +350,14 @@ class DQSNV3:
             return {"score": 0.5, "tier": "MEDIUM"}
         return {"score": 1.0, "tier": "HIGH"}
 
-    def _error(self, request_id: str, reason_code: str, latency_ms: int) -> Dict[str, Any]:
+    def _error(
+        self,
+        request_id: str,
+        reason_code: str,
+        latency_ms: int,
+        input_signals: int,
+        unique_signals: int,
+    ) -> Dict[str, Any]:
         context_hash = canonical_sha256(
             {
                 "component": self.COMPONENT,
@@ -335,6 +374,9 @@ class DQSNV3:
             "decision": "ERROR",
             "risk": {"score": 1.0, "tier": "CRITICAL"},
             "reason_codes": [str(reason_code)],
-            "evidence": {"details": {"error": str(reason_code)}},
+            "evidence": {
+                "dedup": {"input_signals": int(input_signals), "unique_signals": int(unique_signals)},
+                "details": {"error": str(reason_code)},
+            },
             "meta": {"latency_ms": int(latency_ms), "fail_closed": True},
         }
