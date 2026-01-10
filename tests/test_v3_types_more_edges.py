@@ -40,12 +40,14 @@ def test_v3_types_rejects_signal_meta_not_dict():
     assert str(e.value) == ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value
 
 
-def test_v3_types_rejects_signal_meta_missing_fail_closed_true():
+def test_v3_types_allows_signal_meta_missing_fail_closed_and_defaults():
+    # meta={} is allowed at type level; fail_closed is enforced later
     req = _req_base()
-    req["signals"] = [_signal_base(meta={})]  # missing fail_closed
-    with pytest.raises(ValueError) as e:
-        DQSNV3Request.from_dict(req)
-    assert str(e.value) == ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value
+    req["signals"] = [_signal_base(meta={})]
+    parsed = DQSNV3Request.from_dict(req)
+
+    assert len(parsed.signals) == 1
+    assert isinstance(parsed.signals[0]["meta"], dict)
 
 
 def test_v3_types_rejects_signal_component_blank():
