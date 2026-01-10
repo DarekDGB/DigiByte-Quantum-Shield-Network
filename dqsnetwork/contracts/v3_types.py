@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, FrozenSet, List, Optional
-import math
-import json
 
 from .v3_reason_codes import ReasonCode
 
@@ -22,25 +22,25 @@ def _is_finite_number(x: Any) -> bool:
 
 def _walk_check_finite(obj: Any, max_nodes: int) -> Optional[ReasonCode]:
     """
-    Walk JSON-like structures and reject NaN/Infinity.
-    Also bounds traversal to avoid pathological recursion/DoS.
+    Walk JSON-like structures and reject NaN/Inf. Also provides a traversal bound
+    to avoid pathological payloads.
     """
+    stack: List[Any] = [obj]
     seen = 0
-    stack = [obj]
 
     while stack:
+        cur = stack.pop()
         seen += 1
         if seen > max_nodes:
             return ReasonCode.DQSN_ERROR_PAYLOAD_TOO_LARGE
 
-        cur = stack.pop()
-
         if isinstance(cur, dict):
             for k, v in cur.items():
-                if not isinstance(k, str):
-                    return ReasonCode.DQSN_ERROR_INVALID_REQUEST
+                if not _is_finite_number(k):
+                    return ReasonCode.DQSN_ERROR_BAD_NUMBER
                 if not _is_finite_number(v):
                     return ReasonCode.DQSN_ERROR_BAD_NUMBER
+                stack.append(k)
                 stack.append(v)
 
         elif isinstance(cur, list):
@@ -75,9 +75,9 @@ class DQSNV3Request:
     )
 
     # Hard limits (caller cannot override)
-    MAX_REQUEST_BYTES: int = 500_000       # 500KB total request
-    MAX_REQUEST_NODES: int = 50_000        # traversal bound
-    MAX_SIGNALS: int = 256                 # signals per request
+    MAX_REQUEST_BYTES: int = 500_000  # 500KB total request
+    MAX_REQUEST_NODES: int = 50_000  # traversal bound
+    MAX_SIGNALS: int = 256  # signals per request
 
     # Upstream signal envelope requirements (minimum)
     SIGNAL_REQUIRED_KEYS: FrozenSet[str] = frozenset(
@@ -103,26 +103,30 @@ class DQSNV3Request:
 
     @staticmethod
     def from_dict(obj: Dict[str, Any]) -> "DQSNV3Request":
+        # ---- Type guard ----
         if not isinstance(obj, dict):
             raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
 
+        # ---- Unknown top-level keys (deny-by-default) ----
         unknown = set(obj.keys()) - set(DQSNV3Request.TOP_LEVEL_KEYS)
         if unknown:
             raise ValueError(ReasonCode.DQSN_ERROR_UNKNOWN_TOP_LEVEL_KEY.value)
 
+        # ---- Required fields (no coercion) ----
         cv = obj.get("contract_version", None)
         comp = obj.get("component", None)
-        rid = obj.get("request_id", "unknown")
+        rid = obj.get("request_id", None)
         sigs = obj.get("signals", None)
-        con = obj.get("constraints", {}) or {}
-
-        if not isinstance(rid, str):
-            rid = str(rid)
+        con = obj.get("constraints", {})  # optional
 
         if not isinstance(cv, int):
+            # schema version field missing/wrong type => schema version error
             raise ValueError(ReasonCode.DQSN_ERROR_SCHEMA_VERSION.value)
 
-        if not isinstance(comp, str) or not comp:
+        if not isinstance(comp, str) or not comp.strip():
+            raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
+
+        if not isinstance(rid, str) or not rid.strip():
             raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
 
         if sigs is None or not isinstance(sigs, list):
@@ -131,7 +135,7 @@ class DQSNV3Request:
         if len(sigs) > DQSNV3Request.MAX_SIGNALS:
             raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_TOO_MANY.value)
 
-        # Total request size limit (canonical JSON)
+        # ---- Total request size limit (canonical JSON) ----
         try:
             canonical = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
             if len(canonical.encode("utf-8")) > DQSNV3Request.MAX_REQUEST_BYTES:
@@ -141,12 +145,12 @@ class DQSNV3Request:
         except Exception:
             raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
 
-        # NaN / Infinity guard + node traversal bound
+        # ---- NaN / Infinity guard + traversal bound ----
         rc = _walk_check_finite(obj, max_nodes=DQSNV3Request.MAX_REQUEST_NODES)
         if rc is not None:
             raise ValueError(rc.value)
 
-        # Strict validation for each upstream signal envelope (structure only, not meaning)
+        # ---- Strict validation for each upstream signal envelope (structure only) ----
         for s in sigs:
             if not isinstance(s, dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
@@ -159,22 +163,23 @@ class DQSNV3Request:
             if s.get("contract_version") != 3:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # component / request_id / context_hash must be strings
-            if not isinstance(s.get("component"), str) or not s.get("component"):
+            # component / request_id / context_hash must be strings (non-empty)
+            if not isinstance(s.get("component"), str) or not str(s.get("component")).strip():
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            if not isinstance(s.get("request_id"), str) or not s.get("request_id"):
+            if not isinstance(s.get("request_id"), str) or not str(s.get("request_id")).strip():
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            if not isinstance(s.get("context_hash"), str) or not s.get("context_hash"):
+            ch = s.get("context_hash")
+            if not isinstance(ch, str) or not ch.strip():
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # decision must be one of the allowed values
-            decision = s.get("decision")
-            if not isinstance(decision, str) or decision.strip().upper() not in DQSNV3Request.ALLOWED_DECISIONS:
+            # decision must be allowlisted
+            dec = s.get("decision")
+            if not isinstance(dec, str) or dec.strip().upper() not in DQSNV3Request.ALLOWED_DECISIONS:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-            # risk must be dict with score (0..1 finite) and tier (allowed)
+            # risk must be dict with score + tier
             risk = s.get("risk")
             if not isinstance(risk, dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
@@ -182,7 +187,11 @@ class DQSNV3Request:
             score = risk.get("score")
             tier = risk.get("tier")
 
-            if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(float(score)):
+            if (
+                isinstance(score, bool)
+                or not isinstance(score, (int, float))
+                or not math.isfinite(float(score))
+            ):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
             if float(score) < 0.0 or float(score) > 1.0:
@@ -200,7 +209,7 @@ class DQSNV3Request:
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
             for r in rcodes:
-                if not isinstance(r, str) or not r:
+                if not isinstance(r, str) or not r.strip():
                     raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
                 if len(r) > DQSNV3Request.MAX_REASON_CODE_LEN:
                     raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
@@ -212,19 +221,31 @@ class DQSNV3Request:
             if not isinstance(s.get("meta"), dict):
                 raise ValueError(ReasonCode.DQSN_ERROR_SIGNAL_INVALID.value)
 
-        # Constraints (never allow caller to disable fail_closed)
+        # ---- Constraints (optional) ----
+        if con is None:
+            con = {}
+        if not isinstance(con, dict):
+            raise ValueError(ReasonCode.DQSN_ERROR_INVALID_REQUEST.value)
+
+        # Never allow caller to disable fail_closed (forced True)
         max_latency_ms = con.get("max_latency_ms", 2500)
         try:
-            max_latency_ms = int(max_latency_ms)
+            max_latency_ms_i = int(max_latency_ms)
         except Exception:
-            max_latency_ms = 2500
+            max_latency_ms_i = 2500
 
-        constraints = DQSNV3Constraints(fail_closed=True, max_latency_ms=max_latency_ms)
+        # Clamp to sane deterministic bounds (avoid negatives/absurd values)
+        if max_latency_ms_i < 0:
+            max_latency_ms_i = 0
+        if max_latency_ms_i > 60_000:
+            max_latency_ms_i = 60_000
+
+        constraints = DQSNV3Constraints(fail_closed=True, max_latency_ms=max_latency_ms_i)
 
         return DQSNV3Request(
             contract_version=cv,
-            component=comp,
-            request_id=rid,
+            component=comp.strip(),
+            request_id=rid.strip(),
             signals=sigs,
             constraints=constraints,
         )
