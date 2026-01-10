@@ -14,6 +14,10 @@ class DQSNAdvisory:
 
     DQSN aggregates upstream Shield Contract v3 signals and emits a single
     contract-stable decision: ALLOW | ESCALATE | BLOCK | ERROR.
+
+    Notes:
+    - This module also preserves legacy helper names used by older tests/code
+      (e.g., `to_level`) to avoid breaking v2-era wiring.
     """
 
     @staticmethod
@@ -34,3 +38,24 @@ class DQSNAdvisory:
         if tier == "MEDIUM":
             return "ESCALATE"
         return "BLOCK"
+
+
+# ---------------------------------------------------------------------------
+# Legacy compatibility helpers (v2-era tests/imports)
+# ---------------------------------------------------------------------------
+
+def to_level(score: float) -> str:
+    """
+    Legacy helper used by v2-era modules/tests.
+
+    Returns a tier string: LOW | MEDIUM | HIGH | CRITICAL
+    """
+    return DQSNAdvisory.tier_from_score(float(score))
+
+
+def to_decision(score: float) -> str:
+    """
+    Legacy helper: decision derived from score via tier mapping.
+    """
+    tier = DQSNAdvisory.tier_from_score(float(score))
+    return DQSNAdvisory.decision_from_tier(tier)
