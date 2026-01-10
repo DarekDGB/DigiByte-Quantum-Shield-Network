@@ -1,9 +1,24 @@
+"""
+LEGACY MODULE — NOT PART OF SHIELD CONTRACT v3
+
+This file is a historical DQSN prototype used for early experimentation with:
+- heuristic risk scoring (sigmoid model)
+- optional FastAPI exposure
+
+It is NOT deterministic (uses time.time()).
+It is NOT part of the Shield Contract v3 authority surface.
+It MUST NOT be imported by dqsnetwork.v3.
+
+Authoritative v3 entrypoint:
+    dqsnetwork.v3.DQSNV3
+"""
+
 from __future__ import annotations
 
 import math
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal
 
 RiskLevel = Literal["normal", "elevated", "high", "critical"]
 
@@ -106,7 +121,9 @@ def compute_risk_score(m: BlockMetrics) -> RiskAssessment:
 def create_app() -> Any:
     """
     OPTIONAL FastAPI wiring.
-    This function requires fastapi+pydantic installed. Importing dqsn_core does not.
+
+    This legacy function requires fastapi+pydantic installed.
+    Importing legacy.dqsn_core does not require them.
     """
     try:
         from fastapi import FastAPI  # type: ignore
@@ -114,7 +131,8 @@ def create_app() -> Any:
     except Exception as e:  # pragma: no cover
         raise RuntimeError("FastAPI app requested but fastapi/pydantic are not installed") from e
 
-    from .v3_api import register_v3_routes
+    # ✅ absolute import: legacy is outside the dqsnetwork package
+    from dqsnetwork.v3_api import register_v3_routes
 
     app = FastAPI(
         title="DigiByte Quantum Shield Network - Prototype",
