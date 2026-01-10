@@ -41,13 +41,18 @@ def test_v3_types_rejects_signal_meta_not_dict():
 
 
 def test_v3_types_allows_signal_meta_missing_fail_closed_and_defaults():
-    # meta={} is allowed at type level; fail_closed is enforced later
+    # meta={} is allowed at type level; policy enforcement happens later
     req = _req_base()
     req["signals"] = [_signal_base(meta={})]
+
     parsed = DQSNV3Request.from_dict(req)
 
     assert len(parsed.signals) == 1
-    assert isinstance(parsed.signals[0]["meta"], dict)
+    sig = parsed.signals[0]
+
+    # UpstreamSignalV3 is an object, not a dict
+    assert hasattr(sig, "meta")
+    assert isinstance(sig.meta, dict)
 
 
 def test_v3_types_rejects_signal_component_blank():
