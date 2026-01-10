@@ -1,53 +1,45 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .v3 import DQSNV3
 
 
 def evaluate_v3(request: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Shield Contract v3 entrypoint for DQSN (framework-free).
+    Dependency-free entrypoint for calling DQSN v3 from Adaptive Core / Orchestrator.
 
-    This is the single supported integration surface for:
-      - Adaptive Core / Orchestrator
-      - service-to-service calls
-      - test harnesses
-
-    No FastAPI dependency here.
+    This is the same style as Sentinel/Guardian:
+      caller passes a raw dict -> contract parser inside DQSNV3 enforces schema.
     """
     return DQSNV3().evaluate(request)
 
 
 def register_v3_routes(app: Any) -> None:
     """
-    Optional FastAPI route registration.
+    OPTIONAL FastAPI wiring.
 
-    IMPORTANT:
-    - This function is optional and only works if FastAPI + Pydantic are installed.
-    - The module itself MUST remain importable without FastAPI.
+    - If FastAPI isn't installed, importing this module still works.
+    - Only calling register_v3_routes requires FastAPI.
     """
     try:
+        # Import inside function so test/CI doesn't require fastapi.
         from fastapi import FastAPI  # type: ignore
         from pydantic import BaseModel  # type: ignore
-    except Exception as exc:  # pragma: no cover
+    except Exception as e:  # pragma: no cover
         raise RuntimeError(
-            "FastAPI routes require optional dependencies. "
-            "Install with: pip install fastapi pydantic"
-        ) from exc
+            "FastAPI routes requested but fastapi/pydantic are not installed. "
+            "Install extras or vendor routing in your service."
+        ) from e
 
     if not isinstance(app, FastAPI):  # pragma: no cover
-        raise TypeError("register_v3_routes(app): app must be a fastapi.FastAPI instance")
+        raise TypeError("register_v3_routes expects a FastAPI app")
 
-    class DQSNV3EvaluateRequest(BaseModel):
-        """
-        Raw Shield Contract v3 request envelope for DQSN.
-        Kept as a generic dict so we enforce contract parsing inside DQSNV3.
-        """
+    class _DQSNV3EvaluateRequest(BaseModel):
         request: Dict[str, Any]
 
     v3 = DQSNV3()
 
     @app.post("/dqsnet/v3/evaluate")
-    def _evaluate_v3(req: DQSNV3EvaluateRequest) -> Dict[str, Any]:
+    def _evaluate_v3(req: _DQSNV3EvaluateRequest) -> Dict[str, Any]:
         return v3.evaluate(req.request)
