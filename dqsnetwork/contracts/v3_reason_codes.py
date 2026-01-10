@@ -7,22 +7,26 @@ class ReasonCode(str, Enum):
     """
     Contract-stable reason codes for DQSN v3.
 
-    IMPORTANT:
-    - These are stable identifiers.
-    - Tests and downstream orchestrators should rely on these codes,
-      not on free-form messages.
+    NOTE:
+    Enum member NAMES are part of our test-regressed interface.
+    Downstream should rely on VALUES, but tests rely on member names too.
     """
 
-    # --- Success / rollup outcomes ---
+    # --- Rollup outcomes ---
     DQSN_OK_ALLOW = "DQSN_OK_ALLOW"
     DQSN_ESCALATE_WARN = "DQSN_ESCALATE_WARN"
     DQSN_DENY_BLOCK = "DQSN_DENY_BLOCK"
 
-    # --- Schema / request validation errors (fail-closed) ---
+    # --- Request / schema validation (fail-closed) ---
     DQSN_ERROR_SCHEMA_VERSION = "DQSN_ERROR_SCHEMA_VERSION"
     DQSN_ERROR_INVALID_REQUEST = "DQSN_ERROR_INVALID_REQUEST"
     DQSN_ERROR_UNKNOWN_TOP_LEVEL_KEY = "DQSN_ERROR_UNKNOWN_TOP_LEVEL_KEY"
-    DQSN_ERROR_UNKNOWN_SIGNAL_KEY = "DQSN_ERROR_UNKNOWN_SIGNAL_KEY"
     DQSN_ERROR_BAD_NUMBER = "DQSN_ERROR_BAD_NUMBER"
-    DQSN_ERROR_OVERSIZE = "DQSN_ERROR_OVERSIZE"
-    DQSN_ERROR_INVALID_SIGNAL = "DQSN_ERROR_INVALID_SIGNAL"
+
+    # --- Limits / abuse protection ---
+    DQSN_ERROR_PAYLOAD_TOO_LARGE = "DQSN_ERROR_PAYLOAD_TOO_LARGE"
+    DQSN_ERROR_SIGNAL_TOO_MANY = "DQSN_ERROR_SIGNAL_TOO_MANY"
+
+    # --- Upstream signal validation ---
+    DQSN_ERROR_SIGNAL_INVALID = "DQSN_ERROR_SIGNAL_INVALID"
+    DQSN_ERROR_UNKNOWN_SIGNAL_KEY = "DQSN_ERROR_UNKNOWN_SIGNAL_KEY"
