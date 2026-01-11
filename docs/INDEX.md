@@ -1,19 +1,58 @@
 # DQSN Documentation Index
 
-## Start here (Shield Contract v3 — authoritative)
+This index lists the **authoritative documentation** for the DigiByte Quantum Shield Network (DQSN).
 
-- **Contract (binding):** `CONTRACT.md`
-- **Architecture (role + flow):** `ARCHITECTURE.md`
-- **Upgrade plan (work log + invariants):** `DQSN_V3_UPGRADE_PLAN.md`
-
-These three documents define the v3 truth of DQSN. Reviews should focus here.
+If any document conflicts with the v3 contract implementation,
+the **code in `dqsnetwork/` is the source of truth**.
 
 ---
 
-## Legacy references (v2-era)
+## Start here (Shield Contract v3)
 
-Legacy documents are preserved for historical context:
+- **Contract (binding specification)**  
+  `CONTRACT.md`  
+  Defines the Shield Contract v3 schema, invariants, and guarantees.
 
-- `legacy/`
+- **Architecture (design and data flow)**  
+  `ARCHITECTURE.md`  
+  Describes DQSN’s role, authority boundaries, and deterministic aggregation model.
 
-> Legacy docs may describe earlier concepts and are not authoritative for v3.
+---
+
+## Repository structure
+
+- **Authoritative v3 implementation**  
+  `../dqsnetwork/`  
+  Canonical Shield Contract v3 logic.
+
+- **Optional API surface**  
+  `../dqsnetwork/v3_api.py`  
+  FastAPI wiring (optional dependency).
+
+- **Legacy / historical prototypes**  
+  `../legacy/`  
+  Preserved for reference only.  
+  **Not part of the v3 contract surface.**
+
+---
+
+## Historical records
+
+- **DQSN v3 upgrade record (completed)**  
+  `DQSN_V3_UPGRADE_PLAN.md`
+
+---
+
+## Legacy documentation (non-authoritative)
+
+Legacy documents are preserved for historical and research context only.
+They do **not** describe current Shield Contract v3 behavior.
+
+Located in `docs/legacy/`.
+
+---
+
+## Documentation invariant
+
+> If documentation and code disagree,  
+> **the code in `dqsnetwork/` wins.**
