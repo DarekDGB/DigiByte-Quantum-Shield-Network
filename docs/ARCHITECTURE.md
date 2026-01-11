@@ -3,157 +3,142 @@
 
 ---
 
-## 1. Role in the Shield
+## 1. Purpose and Role
 
-DQSN is the **signal aggregation and distribution layer** of the DigiByte Quantum Shield.
+DQSN is the **network-level aggregation layer** in the DigiByte Quantum Shield.
 
-It sits **between shield sensors** (e.g. Sentinel AI) and **active decision layers**
-(ADN, Adaptive Core), providing deterministic ordering, deduplication, and
-contextual aggregation of security signals.
+Its sole responsibility is to ingest **read-only Shield Contract v3 signals**
+from upstream components, validate them, deduplicate them, and produce a
+**deterministic Shield Contract v3 response** for downstream consumers.
 
-DQSN is **not an enforcement engine**.
+DQSN does **not** execute actions.
+DQSN does **not** mutate wallet or node state.
+DQSN does **not** reinterpret upstream meaning.
 
-```
-[ Shield Sensors (v3) ]
-        ↓
-[ DQSN v3 ]
-        ↓
-[ ADN v3 / Adaptive Core ]
+It aggregates — nothing more.
+
+---
+
+## 2. Non-Goals (Explicit)
+
+DQSN does **not**:
+
+- sign or broadcast transactions
+- hold or derive keys
+- alter consensus or node state
+- enforce wallet policy
+- perform adaptive learning
+- issue commands to other layers
+
+All enforcement and learning happens **outside** DQSN.
+
+---
+
+## 3. Authoritative Code Surface
+
+The following paths are **authoritative for DQSN Shield Contract v3 behavior**:
+
+- `dqsnetwork/v3.py`
+  - canonical entrypoint: `DQSNV3.evaluate`
+- `dqsnetwork/contracts/`
+  - `v3_types.py` — schema validation
+  - `v3_hash.py` — canonical hashing
+  - `v3_reason_codes.py` — stable reason codes
+
+If documentation or legacy code conflicts with these files,
+**these files win**.
+
+---
+
+## 4. Legacy Code (Non-Authoritative)
+
+- `legacy/`
+
+This directory contains historical prototypes and research code.
+It is preserved for reference only.
+
+Legacy code:
+- is **not imported** by v3
+- is **not part of the contract**
+- has **no authority**
+
+---
+
+## 5. High-Level Data Flow
+
+```mermaid
+flowchart TD
+    S[Upstream Shield v3 Signals] --> V[Validate Schema]
+    V --> D[Deduplicate by context_hash]
+    D --> O[Stable Ordering]
+    O --> A[Aggregate Decision]
+    A --> H[Canonical context_hash]
+    H --> R[Emit DQSN v3 Response]
 ```
 
 ---
 
-## 2. Contract Authority
+## 6. Deterministic Aggregation Model
 
-DQSN operates exclusively under **Shield Contract v3**.
+DQSN output is deterministic by design:
 
-### Authority rules
+- canonical JSON serialization
+- stable ordering where defined
+- no timestamps
+- no randomness
+- no environment-dependent state
 
-- `contract_version == 3` is mandatory
-- Version gate is evaluated **before any schema parsing**
-- Unknown or invalid inputs **fail closed**
-- DQSN never attempts to repair or reinterpret invalid signals
+Identical input always produces identical output.
 
-Invalid input results in:
+```mermaid
+sequenceDiagram
+    participant U as Upstream
+    participant D as DQSN v3
+    participant C as Downstream Consumer
+
+    U->>D: Shield v3 signal envelopes
+    D->>D: validate + dedup + aggregate
+    D->>C: deterministic v3 response
+```
+
+---
+
+## 7. Failure Model (Fail-Closed)
+
+DQSN is **fail-closed**.
+
+Any ambiguity or invalid input results in:
+
 - `decision = ERROR`
-- `fail_closed = true`
+- a stable reason code
+- a deterministic error hash
 
-Upstream and downstream systems must treat this as **BLOCK**.
-
----
-
-## 3. Transport-Only Guarantee
-
-DQSN is intentionally constrained.
-
-It **does not**:
-- create new threat meaning
-- override upstream decisions
-- sign transactions
-- mutate wallet or chain state
-- execute policy actions
-
-DQSN **only**:
-- validates signal envelopes
-- deduplicates by `context_hash`
-- sequences signals deterministically
-- aggregates summaries for higher layers
+Examples include:
+- invalid schema
+- malformed numeric values (NaN / Inf)
+- unknown top-level keys
+- oversized payloads
 
 ---
 
-## 4. Determinism & Replay Safety
+## 8. Integration Expectations
 
-DQSN v3 is fully deterministic.
+**Upstream components must:**
+- emit Shield Contract v3 envelopes
+- provide stable `context_hash`
+- avoid side effects
 
-Given the same ordered set of valid input signals:
-- aggregation output is identical
-- `context_hash` is identical
+**Downstream components must:**
+- treat DQSN output as contextual input
+- make final decisions independently
 
-This enables:
-- replay-safe processing
-- reproducible audits
-- cross-node consistency
-
----
-
-## 5. Internal Flow (v3)
-
-1. **Contract Gate**
-   - version check
-   - allowlisted top-level keys
-   - size limits
-   - NaN / Infinity rejection
-
-2. **Signal Validation**
-   - each upstream signal must itself be a valid Shield Contract v3 envelope
-   - invalid signals are dropped or fail closed (per policy)
-
-3. **Deduplication**
-   - duplicate `context_hash` values are collapsed
-
-4. **Aggregation**
-   - counts by decision tier
-   - component summaries
-   - severity rollups
-
-5. **Contract Output**
-   - versioned response
-   - stable reason codes
-   - deterministic `context_hash`
-   - `fail_closed = true`
+DQSN never issues commands.
 
 ---
 
-## 6. Interaction with Other Layers
+## 9. Architectural Invariant
 
-### With Sentinel AI (v3)
-- DQSN consumes Sentinel v3 responses as opaque, authoritative signals
-- Sentinel meaning is never reinterpreted
+> DQSN aggregates information.  
+> Higher layers decide and act.
 
-### With ADN / Adaptive Core
-- DQSN provides structured, aggregated context
-- Decision authority remains downstream
-
----
-
-## 7. Hardening & Limits
-
-DQSN enforces defensive limits:
-
-- maximum number of signals per request
-- maximum payload size
-- bounded recursion depth
-- canonical serialization
-- deny-by-default semantics
-
-These limits prevent DoS and ambiguity attacks.
-
----
-
-## 8. Evolution Rules
-
-Any future change to DQSN must preserve:
-
-- Shield Contract versioning
-- fail-closed behavior
-- determinism
-- transport-only role
-
-Changes that weaken these properties are rejected by design.
-
----
-
-## 9. Summary
-
-DQSN is a **strict, deterministic signal network**, not a decision engine.
-
-It exists to:
-- collect
-- validate
-- organize
-- forward
-
-It does **not**:
-- decide
-- enforce
-- execute
+This invariant must never be violated.
