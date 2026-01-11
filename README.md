@@ -1,107 +1,117 @@
-# DigiByte Quantum Shield Network (DQSN)
+# 🔷 DigiByte Quantum Shield Network (DQSN)
 
-[![CI](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/tests.yml/badge.svg)](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Contract](https://img.shields.io/badge/Contract-DQSN%20v3-black.svg)](#)
-[![Status](https://img.shields.io/badge/status-Contract%20Locked-success.svg)](#)
+![CI](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen)
+![License](https://img.shields.io/github/license/DarekDGB/DigiByte-Quantum-Shield-Network)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 
-**Author:** DarekDGB  
-**License:** MIT  
-**Status:** **DQSN v3 — Contract Locked**
+**Shield Contract v3 • Deterministic Aggregation • Fail-Closed Security**
 
----
+DQSN is the **network-level aggregation layer** of the DigiByte Quantum Shield.
+It consumes **read-only Shield Contract v3 signals**, validates and deduplicates them,
+and emits a **deterministic v3 response** for downstream decision layers.
 
-## Overview
-
-**DQSN (DigiByte Quantum Shield Network)** is the **network aggregation layer** of the DigiByte Quantum Shield.
-
-It aggregates **read-only security signals** from upstream components (e.g. Sentinel),
-deduplicates them, and produces a **deterministic, fail-closed v3 contract response**
-for downstream consumers such as the Quantum Wallet Guard (QWG).
-
-DQSN:
-- does **not** sign transactions
-- does **not** execute actions
-- does **not** make wallet decisions
-- does **not** mutate state
-
-It only aggregates and reports network-level context.
+> DQSN aggregates signals.  
+> Higher layers decide and act.
 
 ---
 
-## DQSN v3 Contract (Enforced)
+## 📌 Status
 
-DQSN v3 is **fully enforced by code and tests**.
+- **Version:** Shield Contract v3
+- **CI:** ✅ Passing
+- **Coverage:** ≥ 90% enforced
+- **State:** Contract-locked and complete
 
-The v3 contract guarantees:
-
-- **Fail-closed behavior**
-  - invalid schema
-  - unknown top-level keys
-  - invalid numbers (NaN / Inf)
-  - oversized payloads
-  - excessive signal counts
-  - malformed upstream signals
-
-- **Deterministic output**
-  - no timestamps
-  - no runtime entropy
-  - canonical hashing
-  - order-independent aggregation
-  - identical input → identical output
-
-- **Glass-box semantics**
-  - explicit validation
-  - explicit reason codes
-  - no hidden logic
+This repository contains the **authoritative DQSN v3 implementation**.
 
 ---
 
-## Deterministic Metadata
+## 🧭 Role in the Quantum Shield
 
-The v3 response includes a `meta` section:
-
-```json
-{
-  "latency_ms": 0,
-  "fail_closed": true
-}
+```mermaid
+flowchart LR
+    S[Sentinel AI v3] --> D[DQSN v3]
+    A[ADN v3] --> D
+    D --> G[Guardian Wallet / QWG]
+    G --> C[User / Policy / Orchestrator]
 ```
 
-`latency_ms` is **deterministic by contract** and always set to `0`.
-
-Any real-time latency measurement must be handled **outside** the contract payload
-(e.g. HTTP headers, observability tooling).
-
-This is intentional to preserve determinism and auditability.
+DQSN sits **between sensors and decision layers**.
+It never executes actions and never mutates state.
 
 ---
 
-## Contract Status
+## 🧱 Architectural Guarantees
 
-> **DQSN v3 contract is locked.**
+DQSN v3 guarantees:
 
-Any breaking change to:
-- validation rules
-- response shape
-- hashing behavior
-- fail-closed semantics
+- strict schema validation (deny unknown keys)
+- fail-closed behavior on ambiguity
+- deterministic output and hashing
+- stable reason codes
+- no timestamps, randomness, or side effects
 
-**requires a new major contract version**.
-
----
-
-## Documentation
-
-- `docs/CONTRACT.md` — binding v3 contract definition  
-- `docs/ARCHITECTURE.md` — system role and data flow  
-- `docs/DQSN_V3_UPGRADE_PLAN.md` — historical record  
-- `docs/INDEX.md` — documentation index
+If input is invalid, output is **deterministically ERROR**.
 
 ---
 
-## License
+## 🗂 Repository Layout
+
+```
+dqsnetwork/
+├─ v3.py                  # canonical aggregation entrypoint
+├─ contracts/             # Shield Contract v3 definitions
+│  ├─ v3_types.py
+│  ├─ v3_hash.py
+│  └─ v3_reason_codes.py
+├─ v3_api.py              # optional FastAPI wiring
+└─ ...
+legacy/
+└─ historical prototypes (non-authoritative)
+docs/
+└─ authoritative documentation
+```
+
+Only code under `dqsnetwork/` is authoritative for v3 behavior.
+
+---
+
+## 🔐 Determinism Model
+
+```mermaid
+sequenceDiagram
+    participant U as Upstream
+    participant D as DQSN v3
+    participant X as Downstream
+
+    U->>D: Shield v3 signals
+    D->>D: validate + dedup + aggregate
+    D->>X: deterministic v3 response
+```
+
+Identical input → identical output. Always.
+
+---
+
+## 📚 Documentation
+
+Start here:
+
+- `docs/ARCHITECTURE.md` — design and authority boundaries
+- `docs/INDEX.md` — documentation map
+- `docs/DQSN_V3_UPGRADE_PLAN.md` — completed upgrade record
+
+---
+
+## ⚠️ Authority Rule
+
+If documentation and code disagree,  
+**the code in `dqsnetwork/` wins.**
+
+---
+
+## 🧾 License
 
 MIT License  
-© DarekDGB
+© DarekDGB and contributors
