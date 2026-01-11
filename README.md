@@ -1,6 +1,6 @@
 # 🔷 DigiByte Quantum Shield Network (DQSN)
 
-![CI](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/tests.yml/badge.svg?branch=main)
 ![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen)
 ![License](https://img.shields.io/github/license/DarekDGB/DigiByte-Quantum-Shield-Network)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
