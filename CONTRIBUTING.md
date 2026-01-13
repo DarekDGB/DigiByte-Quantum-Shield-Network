@@ -140,4 +140,4 @@ Contributors and reviewers assess **technical correctness**.
 
 By contributing, you agree your work is released under the **MIT License**.
 
-© 2026 **DarekDGB**
+© 2025 **DarekDGB**
