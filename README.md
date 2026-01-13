@@ -114,4 +114,4 @@ If documentation and code disagree,
 ## 🧾 License
 
 MIT License  
-© DarekDGB and contributors
+© DarekDGB 2025
