@@ -5,6 +5,8 @@ This document defines the **authoritative contract** for interacting with the
 
 Any integration that violates this contract is **unsupported and unsafe**.
 
+**Release status:** v3.0.0 stabilised with deterministic fail-closed behavior and 100% full-package coverage enforcement.
+
 ---
 
 ## 1. Supported Contract Version
