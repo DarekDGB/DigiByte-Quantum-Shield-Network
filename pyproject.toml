@@ -1,59 +1,39 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dqsnetwork"
-version = "0.0.0"
-description = "DigiByte Quantum Shield Network (DQSN) — Shield Contract v3 aggregation layer."
+name = "digibyte-quantum-shield-network"
+version = "3.0.0"
+description = "DigiByte Quantum Shield Network (DQSN) — deterministic quantum-shield coordination layer."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [{ name = "DarekDGB" }]
-keywords = ["digibyte", "security", "shield", "dgsn", "dqsn", "contract", "v3"]
-classifiers = [
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Typing :: Typed",
-  "Development Status :: 4 - Beta",
-  "Intended Audience :: Developers",
-  "Topic :: Security",
-  "Topic :: Software Development :: Libraries",
-]
 
 [project.optional-dependencies]
 test = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
-  "fastapi>=0.110",
-  "pydantic>=2.0",
 ]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.6.0",
   "mypy>=1.8.0",
-  "fastapi>=0.110",
-  "pydantic>=2.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["dqsnetwork*"]
-exclude = ["tests*", "docs*", "examples*"]
+[tool.setuptools]
+packages = ["dqsnetwork"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+dqsnetwork = ["py.typed"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
 addopts = "-q"
-pythonpath = ["."]
-filterwarnings = [
-  "error::DeprecationWarning",
-  "ignore:.*utcnow\\(\\) is deprecated.*:DeprecationWarning",
-]
 
 [tool.ruff]
 line-length = 100
