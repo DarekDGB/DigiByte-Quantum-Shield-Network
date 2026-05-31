@@ -1,7 +1,7 @@
 # 🔷 DigiByte Quantum Shield Network (DQSN)
 
 ![CI](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/tests.yml/badge.svg?branch=main)
-![Coverage](https://img.shields.io/badge/coverage-%E2%89%A590%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
 ![License](https://img.shields.io/github/license/DarekDGB/DigiByte-Quantum-Shield-Network)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 
@@ -18,12 +18,12 @@ and emits a **deterministic v3 response** for downstream decision layers.
 
 ## 📌 Status
 
-- **Version:** Shield Contract v3
+- **Version:** v3.0.0 / Shield Contract v3
 - **CI:** ✅ Passing
-- **Coverage:** ≥ 90% enforced
-- **State:** Contract-locked and complete
+- **Coverage:** 100% full `dqsnetwork` package coverage enforced
+- **State:** v3.0.0 stabilised and ready for Shield Orchestrator integration
 
-This repository contains the **authoritative DQSN v3 implementation**.
+This repository contains the **authoritative DQSN v3 implementation**. The `v3.0.0` stabilisation release locks deterministic aggregation, fail-closed validation, typed package metadata, and full-package coverage enforcement.
 
 ---
 
