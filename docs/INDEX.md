@@ -23,7 +23,7 @@ the **code in `dqsnetwork/` is the source of truth**.
 
 - **Authoritative v3 implementation**  
   `../dqsnetwork/`  
-  Canonical Shield Contract v3 logic, stabilised as v3.0.0 with 100% full-package coverage enforcement.
+  Canonical Shield Contract v3 logic, hardened as v3.1.0 with 100% full-package coverage enforcement.
 
 - **Optional API surface**  
   `../dqsnetwork/v3_api.py`  
