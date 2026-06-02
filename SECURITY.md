@@ -1,7 +1,7 @@
 # Security Policy — DigiByte Quantum Shield Network (DQSN)
 
 **Repository:** DigiByte-Quantum-Shield-Network  
-**Component:** DQSN (Shield Contract v3 / v3.0.0 stabilised)  
+**Component:** DQSN (Shield Contract v3 / v3.1.0 hardened)  
 **Maintainer:** DarekDGB  
 **License:** MIT
 
@@ -92,14 +92,16 @@ DQSN v3 enforces:
 
 ---
 
-## v3.0.0 Stabilisation Gate
+## v3.1.0 Hardening Gate
 
-DQSN v3.0.0 is locked with:
+DQSN v3.1.0 is locked with:
 
 - full `dqsnetwork` package coverage at 100%
 - CI enforcement via `pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q`
 - deterministic fail-closed validation tests for request parsing, signal validation, bad-number handling, and aggregation backstops
 - typed package marker via `dqsnetwork/py.typed`
+- timezone-aware UTC handling where runtime timestamps are required
+- manual test documentation requiring `pip install -e ".[test]"` before local coverage checks
 
 ---
 
