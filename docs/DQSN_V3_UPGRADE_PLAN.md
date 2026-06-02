@@ -61,7 +61,7 @@ The v3 upgrade focused on:
 ## Testing and CI Gates
 
 - CI pipeline enabled
-- coverage gate enforced (`--cov-fail-under=90`)
+- coverage gate enforced (`--cov-fail-under=100`)
 - determinism and fail-closed invariants locked by tests
 - adversarial inputs explicitly covered
 
