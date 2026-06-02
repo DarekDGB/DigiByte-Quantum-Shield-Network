@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 
@@ -31,7 +31,7 @@ class AdaptiveEvent:
     window_seconds: int = 0     # time window used for the score
 
     metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 def build_adaptive_event_from_score(
