@@ -19,12 +19,12 @@ and emits a **deterministic v3 response** for downstream decision layers.
 ## 📌 Status
 
 - **Stable baseline:** v3.0.0 / Shield Contract v3
-- **Hardening track:** v3.1.0
+- **Current release:** v3.1.0 / Shield hardening release
 - **CI:** ✅ Passing
 - **Coverage:** 100% full `dqsnetwork` package coverage enforced
-- **State:** v3.1.0 hardening-ready for Shield Orchestrator integration
+- **State:** v3.1.0 hardened and ready for Shield Orchestrator integration
 
-This repository contains the **authoritative DQSN v3 implementation**. The `v3.0.0` stabilisation release locked deterministic aggregation, fail-closed validation, typed package metadata, and full-package coverage enforcement. The `v3.1.0` hardening track keeps that contract stable while tightening documentation, UTC timestamp handling, and manual test reproducibility.
+This repository contains the **authoritative DQSN v3 implementation**. The `v3.0.0` stabilisation release locked deterministic aggregation, fail-closed validation, typed package metadata, and full-package coverage enforcement. The `v3.1.0` hardening release keeps that contract stable while tightening documentation, timezone-aware UTC timestamp handling, manual test reproducibility, and release metadata.
 
 ---
 
