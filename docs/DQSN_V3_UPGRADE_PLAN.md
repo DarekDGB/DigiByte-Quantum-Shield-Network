@@ -62,10 +62,20 @@ The v3 upgrade focused on:
 
 - CI pipeline enabled
 - coverage gate enforced (`--cov-fail-under=100`)
+- manual test command requires the `.[test]` extra so optional FastAPI route tests are installed
 - determinism and fail-closed invariants locked by tests
 - adversarial inputs explicitly covered
 
 ---
+
+### Manual Verification Command
+
+```bash
+pip install -e ".[test]"
+pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
+```
+
+Using `.[test]` keeps local manual testing aligned with CI and prevents optional FastAPI-related tests from being skipped accidentally.
 
 ## DQSN v3 is considered complete when:
 
