@@ -5,7 +5,7 @@ This document defines the **authoritative contract** for interacting with the
 
 Any integration that violates this contract is **unsupported and unsafe**.
 
-**Release status:** v3.0.0 stabilised with deterministic fail-closed behavior and 100% full-package coverage enforcement.
+**Release status:** v3.1.0 hardened with deterministic fail-closed behavior, 100% full-package coverage enforcement, timezone-aware UTC hardening, and documented manual test reproducibility.
 
 ---
 
