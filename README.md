@@ -18,12 +18,13 @@ and emits a **deterministic v3 response** for downstream decision layers.
 
 ## 📌 Status
 
-- **Version:** v3.0.0 / Shield Contract v3
+- **Stable baseline:** v3.0.0 / Shield Contract v3
+- **Hardening track:** v3.1.0
 - **CI:** ✅ Passing
 - **Coverage:** 100% full `dqsnetwork` package coverage enforced
-- **State:** v3.0.0 stabilised and ready for Shield Orchestrator integration
+- **State:** v3.1.0 hardening-ready for Shield Orchestrator integration
 
-This repository contains the **authoritative DQSN v3 implementation**. The `v3.0.0` stabilisation release locks deterministic aggregation, fail-closed validation, typed package metadata, and full-package coverage enforcement.
+This repository contains the **authoritative DQSN v3 implementation**. The `v3.0.0` stabilisation release locked deterministic aggregation, fail-closed validation, typed package metadata, and full-package coverage enforcement. The `v3.1.0` hardening track keeps that contract stable while tightening documentation, UTC timestamp handling, and manual test reproducibility.
 
 ---
 
@@ -91,6 +92,27 @@ sequenceDiagram
 ```
 
 Identical input → identical output. Always.
+
+---
+
+## 🧪 Testing
+
+DQSN uses optional test dependencies for the full local test path. Install the test extra before running the coverage gate manually:
+
+```bash
+pip install -e ".[test]"
+pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
+```
+
+Expected v3.1.0 hardening result:
+
+```text
+88 passed
+TOTAL 442 statements, 0 missed
+Coverage 100.00%
+```
+
+The CI workflow uses the same `.[test]` install path and enforces `--cov-fail-under=100`.
 
 ---
 
