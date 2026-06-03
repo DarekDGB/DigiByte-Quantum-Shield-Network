@@ -4,6 +4,15 @@ All notable changes to this repository are documented here.
 
 ---
 
+## v3.2.0 — Manifest / Verdict / Receipt Lock
+
+- Added Shield v3.2.0 manifest documentation under `docs/v3/`.
+- Added reason ID and evidence family registries.
+- Added canonical verdict or Orchestrator receipt validation code with negative-first fail-closed tests.
+- Preserved 100% coverage gate.
+- Locked AdamantineOS boundary language: Shield is consumed only through the deterministic Orchestrator receipt.
+
+
 ## v3.1.0 — Shield v3 Hardening Release
 
 ### Added
