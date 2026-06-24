@@ -36,6 +36,8 @@ ml-dsa
 
 Both required paths must verify for policy.v1.
 
+V4.8F-B adds a real OQS-backed adapter for the `ml-dsa` path only. It does not weaken the requirement for `classical-ed25519`.
+
 ## Optional Signature Path
 
 ```text
@@ -54,7 +56,7 @@ FN-DSA and ML-DSA are separate signature directions.
 
 ## Trust Profile
 
-The DigiByte Quantum Shield Network v4 pilot trust profile requires:
+The DigiByte Quantum Shield Network v4 trust profile requires:
 
 ```text
 role
@@ -73,17 +75,42 @@ The only valid DigiByte Quantum Shield Network role in this component package is
 shield_component_dqsn
 ```
 
-A revoked key, unknown key, wrong role, wrong algorithm, or invalid validity window fails closed.
+A revoked key, unknown key, wrong role, wrong algorithm, invalid validity window, malformed real binary key, or deterministic TEST-ONLY key in real backend mode fails closed.
+
+## Real Backend Files
+
+V4.8F-B adds:
+
+```text
+dqsnetwork/v4/real_crypto_backend.py
+dqsnetwork/v4/oqs_mldsa_backend.py
+docs/v4/REAL_CRYPTO_BACKEND.md
+THIRD_PARTY_NOTICES.md
+```
+
+The OQS adapter maps:
+
+```text
+Shield algorithm: ml-dsa
+OQS mechanism:    ML-DSA-65
+```
+
+It lazily imports `oqs` only when used and does not add a hard dependency to `pyproject.toml`.
 
 ## Current Implementation Status
 
-V4.5B provides:
+V4.5B provided:
 
-- a parallel `dqsnetwork.v4` package
-- canonical component-verdict signed payload construction
-- deterministic TEST-ONLY signature entries
-- strict signature-bundle validation
-- DigiByte Quantum Shield Network role-bound trust profile validation
-- negative tests for tampering, context mismatch, and missing signatures
+- a parallel `dqsnetwork.v4` package;
+- canonical component-verdict signed payload construction;
+- deterministic TEST-ONLY signature entries;
+- strict signature-bundle validation;
+- DigiByte Quantum Shield Network role-bound trust profile validation;
+- negative tests for tampering, context mismatch, and missing signatures.
 
-This is a component pilot as the first V4.5 port after the QWG pilot.
+V4.8F-B adds:
+
+- a backend-neutral real crypto adapter for DigiByte Quantum Shield Network component verdict evidence;
+- strict `b64u:<unpadded-base64url-bytes>` real binary material encoding;
+- a lazy OQS/liboqs ML-DSA backend mapped to `ML-DSA-65`;
+- tests proving OQS missing, disabled, wrong mechanism, malformed binary material, native OQS/liboqs exceptions, generic backend exceptions, non-boolean verify results, resolver exceptions, exact field-set violations, and TEST-ONLY material all fail closed.
