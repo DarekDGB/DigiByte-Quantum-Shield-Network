@@ -328,3 +328,85 @@ def test_v48fb_oqs_binary_encoding_helpers_match_real_backend_contract() -> None
     encoded = encode_binary_signature_material(b"abc", field="signature")
     assert encoded == "b64u:YWJj"
     assert decode_binary_signature_material(encoded, field="signature") == b"abc"
+
+
+class LengthCheckedOqsSignature(FakeOqsSignature):
+    details = {
+        "length_public_key": len(PUBLIC_KEY_BYTES),
+        "length_signature": hashlib.sha256(b"").digest_size,
+    }
+
+
+class NonMappingDetailsOqsSignature(FakeOqsSignature):
+    details = "bad-details"
+
+
+class InvalidLengthDetailsOqsSignature(FakeOqsSignature):
+    details = {"length_public_key": True, "length_signature": hashlib.sha256(b"").digest_size}
+
+
+class MissingLengthDetailsOqsSignature(FakeOqsSignature):
+    details: dict[str, int] = {}
+
+
+def test_v48g_dqsn_oqs_mldsa_backend_rejects_wrong_binary_lengths_before_native_verify() -> None:
+    backend = OqsMlDsaBackend(
+        private_key_resolver=resolver,
+        oqs_module=FakeOqsModule(signature_cls=LengthCheckedOqsSignature),
+    )
+
+    with pytest.raises(DqsnV4RealCryptoBackendError, match="public_key byte length"):
+        backend.verify_signature(
+            algorithm="ml-dsa",
+            public_key=encode_binary_signature_material(PUBLIC_KEY_BYTES[:-1], field="public_key"),
+            message=b"message",
+            signature=encode_binary_signature_material(b"0" * hashlib.sha256(b"").digest_size, field="signature"),
+        )
+
+    with pytest.raises(DqsnV4RealCryptoBackendError, match="signature byte length"):
+        backend.verify_signature(
+            algorithm="ml-dsa",
+            public_key=real_key()["public_key"],  # type: ignore[arg-type]
+            message=b"message",
+            signature=encode_binary_signature_material(b"short-signature", field="signature"),
+        )
+
+
+def test_v48g_dqsn_oqs_mldsa_backend_validates_optional_backend_length_metadata() -> None:
+    backend = OqsMlDsaBackend(
+        private_key_resolver=resolver,
+        oqs_module=FakeOqsModule(signature_cls=NonMappingDetailsOqsSignature),
+    )
+    with pytest.raises(DqsnV4RealCryptoBackendError, match="details must be a mapping"):
+        backend.verify_signature(
+            algorithm="ml-dsa",
+            public_key=real_key()["public_key"],  # type: ignore[arg-type]
+            message=b"message",
+            signature=encode_binary_signature_material(b"0" * hashlib.sha256(b"").digest_size, field="signature"),
+        )
+
+    backend = OqsMlDsaBackend(
+        private_key_resolver=resolver,
+        oqs_module=FakeOqsModule(signature_cls=InvalidLengthDetailsOqsSignature),
+    )
+    with pytest.raises(DqsnV4RealCryptoBackendError, match="length_public_key"):
+        backend.verify_signature(
+            algorithm="ml-dsa",
+            public_key=real_key()["public_key"],  # type: ignore[arg-type]
+            message=b"message",
+            signature=encode_binary_signature_material(b"0" * hashlib.sha256(b"").digest_size, field="signature"),
+        )
+
+    backend = OqsMlDsaBackend(
+        private_key_resolver=resolver,
+        oqs_module=FakeOqsModule(signature_cls=MissingLengthDetailsOqsSignature),
+    )
+    assert backend.verify_signature(
+        algorithm="ml-dsa",
+        public_key=real_key()["public_key"],  # type: ignore[arg-type]
+        message=b"message",
+        signature=encode_binary_signature_material(
+            hashlib.sha256(b"oqs-sign|" + PUBLIC_KEY_BYTES + b"message").digest(),
+            field="signature",
+        ),
+    ) is True
