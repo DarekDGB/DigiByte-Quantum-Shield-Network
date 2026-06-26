@@ -85,6 +85,26 @@ class OqsMlDsaBackend:
             raise DqsnV4RealCryptoBackendError(f"{field} must be non-empty bytes")
         return value
 
+    def _require_expected_binary_length(
+        self,
+        value: bytes,
+        *,
+        details: Any,
+        detail_key: str,
+        field: str,
+    ) -> None:
+        if details is None:
+            return
+        if not isinstance(details, dict):
+            raise DqsnV4RealCryptoBackendError("OQS ML-DSA details must be a mapping")
+        expected = details.get(detail_key)
+        if expected is None:
+            return
+        if isinstance(expected, bool) or not isinstance(expected, int) or expected <= 0:
+            raise DqsnV4RealCryptoBackendError(f"OQS ML-DSA {detail_key} must be a positive integer")
+        if len(value) != expected:
+            raise DqsnV4RealCryptoBackendError(f"{field} byte length must be {expected} for OQS ML-DSA-65")
+
     def _resolve_private_key(self, private_key_reference: str) -> bytes:
         clean_reference = reject_test_only_private_key_reference(private_key_reference)
         try:
@@ -120,7 +140,22 @@ class OqsMlDsaBackend:
         oqs = self._require_mechanism_enabled()
         try:
             with oqs.Signature(self.mechanism) as verifier:
+                details = getattr(verifier, "details", None)
+                self._require_expected_binary_length(
+                    public_key_bytes,
+                    details=details,
+                    detail_key="length_public_key",
+                    field="public_key",
+                )
+                self._require_expected_binary_length(
+                    signature_bytes,
+                    details=details,
+                    detail_key="length_signature",
+                    field="signature",
+                )
                 verified = verifier.verify(message_bytes, signature_bytes, public_key_bytes)
+        except DqsnV4RealCryptoBackendError:
+            raise
         except Exception as exc:
             self._raise_oqs_error("verify", exc)
         else:
