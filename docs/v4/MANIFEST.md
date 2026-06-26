@@ -114,3 +114,13 @@ V4.8F-B adds:
 - strict `b64u:<unpadded-base64url-bytes>` real binary material encoding;
 - a lazy OQS/liboqs ML-DSA backend mapped to `ML-DSA-65`;
 - tests proving OQS missing, disabled, wrong mechanism, malformed binary material, native OQS/liboqs exceptions, generic backend exceptions, non-boolean verify results, resolver exceptions, exact field-set violations, and TEST-ONLY material all fail closed.
+
+
+V4.8G adds:
+
+- a gated real-liboqs ML-DSA proof test for DigiByte Quantum Shield Network;
+- a JUnit not-skipped guard for the dedicated real-OQS workflow;
+- optional backend-reported public-key/signature length enforcement before native verify;
+- `.github/workflows/shield-v4-real-oqs.yml` as an optional real-OQS proof harness.
+
+The gated workflow is not a hard dependency for normal CI. It becomes proof only when `SHIELD_V4_REAL_OQS=1` runs on a liboqs-enabled runner and the JUnit guard confirms the test did not skip.
