@@ -20,6 +20,7 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | build real ML-DSA signature entry through backend adapter | `b64u:` signature entry produced |
 | verify real ML-DSA signature entry through backend adapter | verification returns true |
 | lazy OQS fake backend exposes version | backend metadata includes locked mechanism |
+| optional gated real-liboqs ML-DSA proof workflow | runs only with `SHIELD_V4_REAL_OQS=1` and JUnit not-skipped guard |
 
 ## Negative Tests
 
@@ -63,12 +64,26 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | private key resolver exception | fail closed through DigiByte Quantum Shield Network backend error hierarchy |
 | extra fields in real-backend signature entry or registry key record | fail closed |
 | empty OQS message, secret key, or signature bytes | fail closed |
+| wrong-length real liboqs public key in gated proof | fail closed through component backend error hierarchy |
+| gated real-liboqs proof skips in dedicated job | rejected by JUnit not-skipped guard |
 
 ## Required CI Gate
 
 ```text
 pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
 ```
+
+
+## Optional Real-OQS Proof Gate
+
+Default CI does not require liboqs. The live liboqs proof is a separate gated job:
+
+```text
+SHIELD_V4_REAL_OQS=1 python -m pytest --override-ini addopts='' tests/test_v48g_real_oqs_mldsa_backend.py -q --junitxml=shield-v4-real-oqs-results.xml
+python scripts/assert_real_oqs_junit_not_skipped.py shield-v4-real-oqs-results.xml
+```
+
+The guard must prove at least one testcase ran and that `skipped == 0`, `failures == 0`, and `errors == 0` before the run can support a live-liboqs claim.
 
 ## Authority Boundary
 
