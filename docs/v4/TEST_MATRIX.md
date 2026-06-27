@@ -21,6 +21,7 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | verify real ML-DSA signature entry through backend adapter | verification returns true |
 | lazy OQS fake backend exposes version | backend metadata includes locked mechanism |
 | optional gated real-liboqs ML-DSA proof workflow | runs only with `SHIELD_V4_REAL_OQS=1` and JUnit not-skipped guard |
+| shared frozen component-verdict KAT vector | canonical JSON, domain-separated bytes, and signed payload hash match the shared V4.8G-R4 fixture |
 
 ## Negative Tests
 
@@ -38,6 +39,7 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | forbidden authority metadata | fail closed |
 | null in signed payload | fail closed |
 | float in signed payload | fail closed |
+| KAT payload mutated with null or float | fail closed before signing |
 | duplicate JSON key while parsing | fail closed |
 | real backend missing required algorithm support | fail closed |
 | real backend algorithm discovery exception | fail closed through DigiByte Quantum Shield Network backend error hierarchy |
@@ -84,6 +86,22 @@ python scripts/assert_real_oqs_junit_not_skipped.py shield-v4-real-oqs-results.x
 ```
 
 The guard must prove at least one testcase ran and that `skipped == 0`, `failures == 0`, and `errors == 0` before the run can support a live-liboqs claim.
+
+## V4.8G-R4 Audit Cleanup Checks
+
+The component test suite now includes a shared frozen component-verdict KAT fixture:
+
+```text
+tests/fixtures/v4/component_verdict_policy_v1_kat.json
+```
+
+Every component repo must reproduce this signed payload hash exactly:
+
+```text
+a3881f27444ce73de875a15c8b413785a4fec4f4c03baaa6f8ee2fbf839736ae
+```
+
+The KAT is TEST-ONLY deterministic canonicalization evidence only. It does not sign transactions, broadcast, change DigiByte consensus, or claim live liboqs execution.
 
 ## Authority Boundary
 
