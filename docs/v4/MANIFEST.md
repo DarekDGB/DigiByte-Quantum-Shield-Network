@@ -124,3 +124,14 @@ V4.8G adds:
 - `.github/workflows/shield-v4-real-oqs.yml` as an optional real-OQS proof harness.
 
 The gated workflow is not a hard dependency for normal CI. It becomes proof only when `SHIELD_V4_REAL_OQS=1` runs on a liboqs-enabled runner and the JUnit guard confirms the test did not skip.
+
+
+## V4.8G-R4 Audit Cleanup
+
+V4.8G-R4 closes the audit cleanup items for component canonicalization drift by adding:
+
+- the shared frozen component-verdict KAT fixture in `tests/fixtures/v4/component_verdict_policy_v1_kat.json`;
+- a KAT lock test that must reproduce signed payload hash `a3881f27444ce73de875a15c8b413785a4fec4f4c03baaa6f8ee2fbf839736ae`;
+- explicit proof that null and float mutations of the KAT payload fail before signing.
+
+The KAT is TEST-ONLY deterministic evidence. It is not production key material and does not claim live liboqs execution.
