@@ -1,0 +1,48 @@
+{
+  "author_attribution": "DarekDGB",
+  "canonical_json": "{\"canonicalization_profile\":\"shield-v4-canon.v1\",\"component_id\":\"kat_component\",\"context_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"contract_version\":4,\"decision\":\"ALLOW\",\"evidence_families\":[\"kat_family_a\",\"kat_family_b\"],\"evidence_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"fail_closed\":true,\"freshness_nonce\":\"nonce-v4-component-kat\",\"key_registry_version\":1,\"metadata\":{\"list\":[\"δ\",42,true],\"nested\":{\"alpha\":1,\"zeta\":true},\"unicode_nfc_lock\":\"Café\"},\"not_after\":\"2026-06-21T00:05:00Z\",\"not_before\":\"2026-06-21T00:00:00Z\",\"reason_ids\":[\"KAT_REASON_ALPHA\",\"KAT_REASON_OMEGA\"],\"request_id\":\"req-v4-component-kat\",\"schema_version\":\"shield.verdict.v2\",\"signature_policy\":\"policy.v1\"}",
+  "canonicalization_profile": "shield-v4-canon.v1",
+  "domain_separated_payload_hex": "4447422d534849454c442d56342d5349474e45442d5041594c4f41440a4447422d534849454c442d56342d434f4d504f4e454e542d564552444943543a736869656c642e766572646963742e76323a706f6c6963792e76310a7b2263616e6f6e6963616c697a6174696f6e5f70726f66696c65223a22736869656c642d76342d63616e6f6e2e7631222c22636f6d706f6e656e745f6964223a226b61745f636f6d706f6e656e74222c22636f6e746578745f68617368223a2261616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22636f6e74726163745f76657273696f6e223a342c226465636973696f6e223a22414c4c4f57222c2265766964656e63655f66616d696c696573223a5b226b61745f66616d696c795f61222c226b61745f66616d696c795f62225d2c2265766964656e63655f68617368223a2262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c226661696c5f636c6f736564223a747275652c2266726573686e6573735f6e6f6e6365223a226e6f6e63652d76342d636f6d706f6e656e742d6b6174222c226b65795f72656769737472795f76657273696f6e223a312c226d65746164617461223a7b226c697374223a5b22ceb4222c34322c747275655d2c226e6573746564223a7b22616c706861223a312c227a657461223a747275657d2c22756e69636f64655f6e66635f6c6f636b223a22436166c3a9227d2c226e6f745f6166746572223a22323032362d30362d32315430303a30353a30305a222c226e6f745f6265666f7265223a22323032362d30362d32315430303a30303a30305a222c22726561736f6e5f696473223a5b224b41545f524541534f4e5f414c504841222c224b41545f524541534f4e5f4f4d454741225d2c22726571756573745f6964223a227265712d76342d636f6d706f6e656e742d6b6174222c22736368656d615f76657273696f6e223a22736869656c642e766572646963742e7632222c227369676e61747572655f706f6c696379223a22706f6c6963792e7631227d",
+  "domain_tag": "DGB-SHIELD-V4-COMPONENT-VERDICT:shield.verdict.v2:policy.v1",
+  "expected_validation": "All five Shield component repos must produce this exact canonical JSON, domain-separated bytes, and signed_payload_hash for the TEST-ONLY component KAT payload.",
+  "input_payload": {
+    "canonicalization_profile": "shield-v4-canon.v1",
+    "component_id": "kat_component",
+    "context_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "contract_version": 4,
+    "decision": "ALLOW",
+    "evidence_families": [
+      "kat_family_a",
+      "kat_family_b"
+    ],
+    "evidence_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "fail_closed": true,
+    "freshness_nonce": "nonce-v4-component-kat",
+    "key_registry_version": 1,
+    "metadata": {
+      "list": [
+        "δ",
+        42,
+        true
+      ],
+      "nested": {
+        "alpha": 1,
+        "zeta": true
+      },
+      "unicode_nfc_lock": "Café"
+    },
+    "not_after": "2026-06-21T00:05:00Z",
+    "not_before": "2026-06-21T00:00:00Z",
+    "reason_ids": [
+      "KAT_REASON_ALPHA",
+      "KAT_REASON_OMEGA"
+    ],
+    "request_id": "req-v4-component-kat",
+    "schema_version": "shield.verdict.v2",
+    "signature_policy": "policy.v1"
+  },
+  "policy_version": "policy.v1",
+  "schema_version": "shield.v4.component_kat.v1",
+  "signed_payload_hash": "a3881f27444ce73de875a15c8b413785a4fec4f4c03baaa6f8ee2fbf839736ae",
+  "warning": "TEST-ONLY deterministic canonicalization vector. Not production key material and not production cryptography."
+}
