@@ -44,7 +44,7 @@ V4.8F-B adds a real OQS-backed adapter for the `ml-dsa` path only. It does not w
 fn-dsa
 ```
 
-FN-DSA may provide additional evidence, but it never overrides a failed required path.
+FN-DSA may provide additional evidence, but it never overrides a failed required path. V4.8H-C keeps FN-DSA optional: absence is allowed, but presence is fatal if the FN-DSA entry is invalid, malformed, unsupported, duplicated, wrong-role, wrong-hash, wrong-domain, or has no matching active component trust-profile key.
 
 ## Algorithm Naming
 
@@ -53,6 +53,20 @@ ML-DSA is the NIST-standardized name for the signature direction formerly known 
 FN-DSA is based on Falcon.
 
 FN-DSA and ML-DSA are separate signature directions.
+
+Shield v4 uses the algorithm identifier `fn-dsa`, not the Q-ID `pqc-` prefix.
+
+## Standard Profiles
+
+Every signature entry carries an authenticated `standard_profile` field. V4.8H-C locks these policy.v1 profiles for component evidence:
+
+```text
+classical-ed25519 -> rfc8032-ed25519-v1
+ml-dsa            -> fips204-ml-dsa-65-v1
+fn-dsa            -> fips206-draft-falcon1024-v1
+```
+
+`fips206-draft-falcon1024-v1` means draft Falcon-1024 evidence only. It is not a final FIPS 206 production proof. The profile value is part of deterministic TEST-ONLY signature material and the real-signature message bytes, so a profile flip after signing fails closed.
 
 ## Trust Profile
 
@@ -75,7 +89,7 @@ The only valid DigiByte Quantum Shield Network role in this component package is
 shield_component_dqsn
 ```
 
-A revoked key, unknown key, wrong role, wrong algorithm, invalid validity window, malformed real binary key, or deterministic TEST-ONLY key in real backend mode fails closed.
+A revoked key, unknown key, wrong role, wrong algorithm, invalid validity window, malformed real binary key, or deterministic TEST-ONLY key in real backend mode fails closed. The trust profile preserves the `(role, algorithm)` model; FN-DSA uses the component role plus `algorithm: fn-dsa`, and the algorithm is not folded into the role name.
 
 ## Real Backend Files
 
@@ -135,3 +149,16 @@ V4.8G-R4 closes the audit cleanup items for component canonicalization drift by 
 - explicit proof that null and float mutations of the KAT payload fail before signing.
 
 The KAT is TEST-ONLY deterministic evidence. It is not production key material and does not claim live liboqs execution.
+
+## V4.8H-C FN-DSA Component Parity
+
+V4.8H-C adds:
+
+- authenticated `standard_profile` in component signature entries;
+- `standard_profile` binding inside `build_real_crypto_signature_input`;
+- Falcon-1024 draft profile locking for optional `fn-dsa` evidence;
+- shared component FN-DSA signed-message KAT fixture in `tests/fixtures/v4/fn_dsa_signed_message_draft_profile_kat.json`;
+- tests proving FN-DSA absence is allowed, valid FN-DSA is recorded, present-invalid FN-DSA is fatal, and FN-DSA cannot rescue failed or missing required signatures.
+
+V4.8H-C does not add a live FN-DSA/Falcon backend and does not claim final FIPS 206 compliance.
+
