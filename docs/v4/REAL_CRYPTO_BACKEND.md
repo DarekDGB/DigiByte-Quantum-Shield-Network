@@ -6,7 +6,7 @@ Author attribution: DarekDGB
 
 This document locks the DigiByte Quantum Shield Network Shield v4 real-crypto backend boundary for component verdict evidence.
 
-V4.8F-B introduces a deployment-controlled real ML-DSA adapter path for DigiByte Quantum Shield Network. It does not replace the deterministic TEST-ONLY signature path used by contract tests. It does not make DigiByte Quantum Shield Network a transaction signer, broadcaster, consensus layer, wallet custody layer, or AdamantineOS final authority.
+V4.8F-B introduces a deployment-controlled real ML-DSA adapter path for DigiByte Quantum Shield Network. It does not replace the deterministic TEST-ONLY signature path used by contract tests. V4.8H-C adds authenticated `standard_profile` binding and optional FN-DSA draft-profile evidence semantics. It does not make DigiByte Quantum Shield Network a transaction signer, broadcaster, consensus layer, wallet custody layer, or AdamantineOS final authority.
 
 ## Non-authority lock
 
@@ -32,6 +32,18 @@ Shield v4 policy `policy.v1` uses these names:
 - `fn-dsa` - optional evidence path based on Falcon.
 
 `fn-dsa` is not ML-DSA. It must never override failure of the required `classical-ed25519` or `ml-dsa` paths.
+
+## Standard profile binding
+
+V4.8H-C extends the neutral real-crypto signature-entry contract with authenticated `standard_profile` binding. The locked policy.v1 profiles are:
+
+```text
+classical-ed25519 -> rfc8032-ed25519-v1
+ml-dsa            -> fips204-ml-dsa-65-v1
+fn-dsa            -> fips206-draft-falcon1024-v1
+```
+
+`fn-dsa` is optional evidence based on Falcon-1024. It is separate from ML-DSA and cannot override required classical or ML-DSA failures. The draft Falcon profile is not a final FIPS 206 production proof. Future final-profile support must add a separate profile, KATs, registry keys, docs, and tests instead of reinterpreting draft signatures.
 
 ## Backend model
 
@@ -71,6 +83,7 @@ DGB-SHIELD-V4-REAL-CRYPTO-SIGNATURE-INPUT
 <domain_tag>
 <signed_payload_hash>
 <algorithm>
+<standard_profile>
 <key_id>
 <key_version>
 ```
@@ -82,9 +95,9 @@ Rules:
 - no trailing newline;
 - `domain_tag` must be `DGB-SHIELD-V4-COMPONENT-VERDICT:shield.verdict.v2:policy.v1`;
 - `signed_payload_hash` must be lowercase SHA-256 hex;
-- `algorithm`, `key_id`, and `key_version` must match the DigiByte Quantum Shield Network trust-profile entry.
+- `algorithm`, `standard_profile`, `key_id`, and `key_version` must match the DigiByte Quantum Shield Network trust-profile entry.
 
-The `signed_payload_hash` is already computed over the domain-separated canonical DigiByte Quantum Shield Network verdict payload. The real-signature input binds that hash to the concrete signature entry so signatures cannot be spliced across algorithms, keys, roles, or bundles.
+The `standard_profile` is authenticated message input, not display-only metadata. The `signed_payload_hash` is already computed over the domain-separated canonical DigiByte Quantum Shield Network verdict payload. The real-signature input binds that hash to the concrete signature entry so signatures cannot be spliced across algorithms, standard profiles, keys, roles, or bundles.
 
 ## Binary encoding lock
 
@@ -145,7 +158,7 @@ classical-ed25519
 ml-dsa
 ```
 
-A production real-backend deployment must satisfy both required paths. This DigiByte Quantum Shield Network OQS adapter alone does not downgrade policy.v1 and does not allow ML-DSA to replace the required classical path.
+A production real-backend deployment must satisfy both required paths. If optional FN-DSA is present, unsupported `standard_profile` values, wrong hashes, wrong domains, duplicate entries, wrong roles, or missing trust-profile keys fail closed. This DigiByte Quantum Shield Network OQS adapter alone does not downgrade policy.v1 and does not allow ML-DSA to replace the required classical path.
 
 
 ## V4.8G gated real-liboqs proof
