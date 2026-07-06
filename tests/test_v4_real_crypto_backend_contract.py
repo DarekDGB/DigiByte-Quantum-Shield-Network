@@ -21,7 +21,11 @@ from dqsnetwork.v4.real_crypto_backend import (
     verify_signature_entry_with_real_backend,
 )
 from dqsnetwork.v4.signing import COMPONENT_VERDICT_DOMAIN, build_signature_bundle, verify_signature_bundle
-from dqsnetwork.v4.trust_profile import REQUIRED_ALGORITHMS
+from dqsnetwork.v4.trust_profile import (
+    FIPS204_ML_DSA_65_PROFILE,
+    REQUIRED_ALGORITHMS,
+    default_standard_profile_for_algorithm,
+)
 
 PAYLOAD_HASH = "a" * 64
 PUBLIC_KEY_BYTES = b"dqsn-real-ml-dsa-public-key"
@@ -102,8 +106,10 @@ def real_key(*, algorithm: str = "ml-dsa", public_key: str | None = None) -> dic
 
 
 def signature_for_key(key: dict[str, Any], *, domain_tag: str = COMPONENT_VERDICT_DOMAIN) -> dict[str, Any]:
+    standard_profile = default_standard_profile_for_algorithm(key["algorithm"])
     message = build_real_crypto_signature_input(
         algorithm=key["algorithm"],
+        standard_profile=standard_profile,
         domain_tag=domain_tag,
         signed_payload_hash=PAYLOAD_HASH,
         key_id=key["key_id"],
@@ -118,6 +124,7 @@ def signature_for_key(key: dict[str, Any], *, domain_tag: str = COMPONENT_VERDIC
     )
     return {
         "algorithm": key["algorithm"],
+        "standard_profile": standard_profile,
         "key_id": key["key_id"],
         "key_version": key["key_version"],
         "signed_payload_hash": PAYLOAD_HASH,
@@ -126,9 +133,10 @@ def signature_for_key(key: dict[str, Any], *, domain_tag: str = COMPONENT_VERDIC
     }
 
 
-def test_v48fb_real_crypto_signature_input_is_frozen_to_dqsn_domain() -> None:
+def test_v48g_r4_dqsn_real_crypto_signature_input_is_frozen_to_dqsn_domain() -> None:
     encoded = build_real_crypto_signature_input(
         algorithm="ml-dsa",
+        standard_profile=FIPS204_ML_DSA_65_PROFILE,
         domain_tag=COMPONENT_VERDICT_DOMAIN,
         signed_payload_hash=PAYLOAD_HASH,
         key_id="shield_component_dqsn-ml-dsa-v1",
@@ -140,6 +148,7 @@ def test_v48fb_real_crypto_signature_input_is_frozen_to_dqsn_domain() -> None:
         f"{COMPONENT_VERDICT_DOMAIN}\n"
         f"{PAYLOAD_HASH}\n"
         "ml-dsa\n"
+        "fips204-ml-dsa-65-v1\n"
         "shield_component_dqsn-ml-dsa-v1\n"
         "1"
     ).encode("utf-8")
@@ -154,17 +163,20 @@ def test_v48fb_real_crypto_signature_input_is_frozen_to_dqsn_domain() -> None:
         ({"signed_payload_hash": "A" * 64}, "lowercase"),
         ({"signed_payload_hash": "a" * 63}, "64-character"),
         ({"signed_payload_hash": "z" * 64}, "sha256"),
+        ({"standard_profile": ""}, "standard_profile"),
+        ({"standard_profile": "fips206-draft-falcon1024-v1"}, "standard_profile"),
         ({"key_id": ""}, "key_id"),
         ({"key_id": " shield_component_dqsn-ml-dsa-v1"}, "surrounding whitespace"),
         ({"key_version": 0}, "key_version"),
         ({"key_version": True}, "key_version"),
     ],
 )
-def test_v48fb_real_crypto_signature_input_rejects_ambiguous_values(
+def test_v48g_r4_dqsn_real_crypto_signature_input_rejects_ambiguous_values(
     kwargs: dict[str, object], match: str
 ) -> None:
     base: dict[str, object] = {
         "algorithm": "ml-dsa",
+        "standard_profile": FIPS204_ML_DSA_65_PROFILE,
         "domain_tag": COMPONENT_VERDICT_DOMAIN,
         "signed_payload_hash": PAYLOAD_HASH,
         "key_id": "shield_component_dqsn-ml-dsa-v1",
@@ -175,9 +187,10 @@ def test_v48fb_real_crypto_signature_input_rejects_ambiguous_values(
         build_real_crypto_signature_input(**base)  # type: ignore[arg-type]
 
 
-def test_v48fb_real_crypto_signer_builds_b64u_entry_without_test_fallback() -> None:
+def test_v48g_r4_dqsn_real_crypto_signer_builds_b64u_entry_without_test_fallback() -> None:
     entry = build_signature_entry_with_real_backend(
         algorithm="ml-dsa",
+        standard_profile=FIPS204_ML_DSA_65_PROFILE,
         domain_tag=COMPONENT_VERDICT_DOMAIN,
         signed_payload_hash=PAYLOAD_HASH,
         key_id="shield_component_dqsn-ml-dsa-v1",
@@ -187,12 +200,13 @@ def test_v48fb_real_crypto_signer_builds_b64u_entry_without_test_fallback() -> N
     )
 
     assert entry["algorithm"] == "ml-dsa"
+    assert entry["standard_profile"] == FIPS204_ML_DSA_65_PROFILE
     assert entry["key_id"] == "shield_component_dqsn-ml-dsa-v1"
     assert str(entry["signature"]).startswith("b64u:")
     assert decode_binary_signature_material(entry["signature"], field="signature")
 
 
-def test_v48fb_real_crypto_signer_rejects_private_material_backend_gap_and_malformed_backend_output() -> None:
+def test_v48g_r4_dqsn_real_crypto_signer_rejects_private_material_backend_gap_and_malformed_backend_output() -> None:
     with pytest.raises(ValueError, match="private_key_reference"):
         reject_test_only_private_key_reference("")
     with pytest.raises(DqsnV4RealCryptoMaterialError, match="test-only"):
@@ -203,6 +217,7 @@ def test_v48fb_real_crypto_signer_rejects_private_material_backend_gap_and_malfo
     with pytest.raises(DqsnV4RealCryptoBackendUnavailable, match="support"):
         build_signature_entry_with_real_backend(
             algorithm="ml-dsa",
+            standard_profile=FIPS204_ML_DSA_65_PROFILE,
             domain_tag=COMPONENT_VERDICT_DOMAIN,
             signed_payload_hash=PAYLOAD_HASH,
             key_id="shield_component_dqsn-ml-dsa-v1",
@@ -214,6 +229,7 @@ def test_v48fb_real_crypto_signer_rejects_private_material_backend_gap_and_malfo
     with pytest.raises(DqsnV4RealCryptoBackendError, match="b64u"):
         build_signature_entry_with_real_backend(
             algorithm="ml-dsa",
+            standard_profile=FIPS204_ML_DSA_65_PROFILE,
             domain_tag=COMPONENT_VERDICT_DOMAIN,
             signed_payload_hash=PAYLOAD_HASH,
             key_id="shield_component_dqsn-ml-dsa-v1",
@@ -223,10 +239,11 @@ def test_v48fb_real_crypto_signer_rejects_private_material_backend_gap_and_malfo
         )
 
 
-def test_v48fb_real_crypto_backend_wrapper_catches_native_exceptions() -> None:
+def test_v48g_r4_dqsn_real_crypto_backend_wrapper_catches_native_exceptions() -> None:
     with pytest.raises(DqsnV4RealCryptoBackendError, match="algorithm discovery") as algorithm_error:
         build_signature_entry_with_real_backend(
             algorithm="ml-dsa",
+            standard_profile=FIPS204_ML_DSA_65_PROFILE,
             domain_tag=COMPONENT_VERDICT_DOMAIN,
             signed_payload_hash=PAYLOAD_HASH,
             key_id="shield_component_dqsn-ml-dsa-v1",
@@ -239,6 +256,7 @@ def test_v48fb_real_crypto_backend_wrapper_catches_native_exceptions() -> None:
     with pytest.raises(DqsnV4RealCryptoBackendError, match="sign failed closed") as sign_error:
         build_signature_entry_with_real_backend(
             algorithm="ml-dsa",
+            standard_profile=FIPS204_ML_DSA_65_PROFILE,
             domain_tag=COMPONENT_VERDICT_DOMAIN,
             signed_payload_hash=PAYLOAD_HASH,
             key_id="shield_component_dqsn-ml-dsa-v1",
@@ -266,6 +284,7 @@ def test_v48fb_real_crypto_backend_wrapper_catches_native_exceptions() -> None:
     with pytest.raises(DqsnV4RealCryptoBackendUnavailable, match="hierarchy sign failure"):
         build_signature_entry_with_real_backend(
             algorithm="ml-dsa",
+            standard_profile=FIPS204_ML_DSA_65_PROFILE,
             domain_tag=COMPONENT_VERDICT_DOMAIN,
             signed_payload_hash=PAYLOAD_HASH,
             key_id="shield_component_dqsn-ml-dsa-v1",
@@ -282,7 +301,7 @@ def test_v48fb_real_crypto_backend_wrapper_catches_native_exceptions() -> None:
         )
 
 
-def test_v48fb_real_crypto_verifier_accepts_real_backend_and_rejects_tamper() -> None:
+def test_v48g_r4_dqsn_real_crypto_verifier_accepts_real_backend_and_rejects_tamper() -> None:
     key = real_key()
     entry = signature_for_key(key)
     backend = FakeRealBackend()
@@ -294,7 +313,7 @@ def test_v48fb_real_crypto_verifier_accepts_real_backend_and_rejects_tamper() ->
     assert verify_signature_entry_with_real_backend(tampered, key, backend=backend) is False
 
 
-def test_v48fb_real_crypto_verifier_adapter_matches_dqsn_bundle_callback_shape() -> None:
+def test_v48g_r4_dqsn_real_crypto_verifier_adapter_matches_dqsn_bundle_callback_shape() -> None:
     key = real_key(algorithm="ml-dsa")
     verifier = make_real_crypto_signature_verifier(FakeRealBackend())
     entry = signature_for_key(key)
@@ -324,7 +343,7 @@ def test_v48fb_real_crypto_verifier_adapter_matches_dqsn_bundle_callback_shape()
     assert summary["verified_algorithms"] == ["classical-ed25519", "ml-dsa"]
 
 
-def test_v48fb_real_crypto_verifier_fails_closed_on_test_key_material_and_key_mismatch() -> None:
+def test_v48g_r4_dqsn_real_crypto_verifier_fails_closed_on_test_key_material_and_key_mismatch() -> None:
     test_public_key = real_key(public_key="TEST-ONLY-PUBLIC-shield_component_dqsn-ml-dsa-v1")
     with pytest.raises(DqsnV4RealCryptoMaterialError, match="test-only"):
         verify_signature_entry_with_real_backend(signature_for_key(real_key()), test_public_key, backend=FakeRealBackend())
@@ -349,7 +368,7 @@ def test_v48fb_real_crypto_verifier_fails_closed_on_test_key_material_and_key_mi
         verify_signature_entry_with_real_backend(signature_for_key(real_key()), "not-dict", backend=FakeRealBackend())  # type: ignore[arg-type]
 
 
-def test_v48fb_real_crypto_verifier_rejects_bad_entry_and_backend_gap_before_verify() -> None:
+def test_v48g_r4_dqsn_real_crypto_verifier_rejects_bad_entry_and_backend_gap_before_verify() -> None:
     key = real_key()
     with pytest.raises(DqsnV4RealCryptoBackendError, match="dict"):
         verify_signature_entry_with_real_backend("bad-entry", key, backend=FakeRealBackend())  # type: ignore[arg-type]
@@ -396,7 +415,7 @@ def test_v48fb_real_crypto_verifier_rejects_bad_entry_and_backend_gap_before_ver
         verify_signature_entry_with_real_backend(bad_hash, key, backend=FakeRealBackend())
 
 
-def test_v48fb_real_binary_encoding_helpers_are_strict() -> None:
+def test_v48g_r4_dqsn_real_binary_encoding_helpers_are_strict() -> None:
     encoded = encode_binary_signature_material(b"abc", field="signature")
     assert encoded == "b64u:YWJj"
     assert decode_binary_signature_material(encoded, field="signature") == b"abc"
