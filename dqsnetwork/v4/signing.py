@@ -10,14 +10,27 @@ from dqsnetwork.v4 import COMPONENT_ROLE, POLICY_VERSION, SIGNATURE_BUNDLE_SCHEM
 from dqsnetwork.v4.trust_profile import (
     REQUIRED_ALGORITHMS,
     SUPPORTED_ALGORITHMS,
+    default_standard_profile_for_algorithm,
     find_trusted_key,
     require_non_empty_str,
     require_positive_int,
     require_supported_algorithm,
+    require_supported_standard_profile,
 )
 
 SIGNED_PAYLOAD_HASH_PREFIX = "DGB-SHIELD-V4-SIGNED-PAYLOAD"
 COMPONENT_VERDICT_DOMAIN = f"DGB-SHIELD-V4-COMPONENT-VERDICT:{VERDICT_SCHEMA_VERSION}:{POLICY_VERSION}"
+SIGNATURE_ENTRY_FIELDS = frozenset(
+    {
+        "algorithm",
+        "standard_profile",
+        "key_id",
+        "key_version",
+        "signed_payload_hash",
+        "domain_tag",
+        "signature",
+    }
+)
 SignatureVerifier: TypeAlias = Callable[[dict[str, Any], dict[str, Any]], bool]
 
 
@@ -75,7 +88,9 @@ def parse_json_no_duplicate_keys(raw_json: str) -> dict[str, Any]:
 
 
 def domain_separated_payload_bytes(*, payload: dict[str, Any]) -> bytes:
-    return f"{SIGNED_PAYLOAD_HASH_PREFIX}\n{COMPONENT_VERDICT_DOMAIN}\n".encode("utf-8") + to_canonical_json(payload).encode("utf-8")
+    return f"{SIGNED_PAYLOAD_HASH_PREFIX}\n{COMPONENT_VERDICT_DOMAIN}\n".encode(
+        "utf-8"
+    ) + to_canonical_json(payload).encode("utf-8")
 
 
 def signed_payload_hash(*, payload: dict[str, Any]) -> str:
@@ -96,17 +111,46 @@ def require_hash(value: Any, *, field: str) -> str:
 
 
 def build_signature_bundle(*, signatures: list[dict[str, Any]], policy_version: str = POLICY_VERSION) -> dict[str, Any]:
-    return {"schema_version": SIGNATURE_BUNDLE_SCHEMA_VERSION, "policy_version": policy_version, "signatures": signatures}
+    return {
+        "schema_version": SIGNATURE_BUNDLE_SCHEMA_VERSION,
+        "policy_version": policy_version,
+        "signatures": signatures,
+    }
+
+
+def _test_signature_material(
+    *,
+    public_key: str,
+    algorithm: str,
+    standard_profile: str,
+    signed_hash: str,
+) -> str:
+    return hashlib.sha256(
+        (
+            "TEST-ONLY-DQSN-SIGNATURE\n"
+            f"{public_key}\n"
+            f"{algorithm}\n"
+            f"{standard_profile}\n"
+            f"{signed_hash}"
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def build_test_signature_entry(*, algorithm: str, signed_hash: str) -> dict[str, Any]:
     clean_algorithm = require_supported_algorithm(algorithm)
+    standard_profile = default_standard_profile_for_algorithm(clean_algorithm)
     clean_hash = require_hash(signed_hash, field="signed_hash")
     key_id = f"test-{COMPONENT_ROLE}-{clean_algorithm}-v1"
     public_key = f"TEST-ONLY-PUBLIC-{COMPONENT_ROLE}-{clean_algorithm}-v1"
-    signature = hashlib.sha256(f"TEST-ONLY-DQSN-SIGNATURE\n{public_key}\n{clean_algorithm}\n{clean_hash}".encode("utf-8")).hexdigest()
+    signature = _test_signature_material(
+        public_key=public_key,
+        algorithm=clean_algorithm,
+        standard_profile=standard_profile,
+        signed_hash=clean_hash,
+    )
     return {
         "algorithm": clean_algorithm,
+        "standard_profile": standard_profile,
         "key_id": key_id,
         "key_version": 1,
         "signed_payload_hash": clean_hash,
@@ -116,9 +160,17 @@ def build_test_signature_entry(*, algorithm: str, signed_hash: str) -> dict[str,
 
 
 def verify_test_only_signature(entry: dict[str, Any], key: dict[str, Any]) -> bool:
-    expected = hashlib.sha256(
-        f"TEST-ONLY-DQSN-SIGNATURE\n{key['public_key']}\n{entry['algorithm']}\n{entry['signed_payload_hash']}".encode("utf-8")
-    ).hexdigest()
+    algorithm = entry["algorithm"]
+    standard_profile = require_supported_standard_profile(
+        algorithm=algorithm,
+        standard_profile=entry["standard_profile"],
+    )
+    expected = _test_signature_material(
+        public_key=key["public_key"],
+        algorithm=algorithm,
+        standard_profile=standard_profile,
+        signed_hash=entry["signed_payload_hash"],
+    )
     return entry["signature"] == expected
 
 
@@ -148,9 +200,13 @@ def verify_signature_bundle(
     for entry in bundle["signatures"]:
         if not isinstance(entry, dict):
             raise ValueError("signature entry must be dict")
-        if set(entry.keys()) != {"algorithm", "key_id", "key_version", "signed_payload_hash", "domain_tag", "signature"}:
+        if set(entry.keys()) != SIGNATURE_ENTRY_FIELDS:
             raise ValueError("signature entry fields must match required schema")
         algorithm = require_supported_algorithm(entry["algorithm"])
+        standard_profile = require_supported_standard_profile(
+            algorithm=algorithm,
+            standard_profile=entry["standard_profile"],
+        )
         if algorithm in seen_algorithms:
             raise ValueError("duplicate signature algorithm")
         seen_algorithms.add(algorithm)
@@ -167,9 +223,23 @@ def verify_signature_bundle(
             artifact_not_before=artifact_not_before,
             artifact_not_after=artifact_not_after,
         )
-        if not verifier(entry, key):
+        try:
+            verified = verifier(entry, key)
+        except Exception as exc:
+            raise ValueError("signature verifier failed closed") from exc
+        if not isinstance(verified, bool):
+            raise ValueError("signature verifier must return bool")
+        if not verified:
             raise ValueError("signature verification failed")
-        results.append({"algorithm": algorithm, "key_id": key["key_id"], "key_version": key["key_version"], "verified": True})
+        results.append(
+            {
+                "algorithm": algorithm,
+                "standard_profile": standard_profile,
+                "key_id": key["key_id"],
+                "key_version": key["key_version"],
+                "verified": True,
+            }
+        )
     missing = set(REQUIRED_ALGORITHMS) - seen_algorithms
     if missing:
         raise ValueError("signature policy requirements not satisfied")
@@ -178,6 +248,7 @@ def verify_signature_bundle(
         "required_algorithms": list(REQUIRED_ALGORITHMS),
         "optional_algorithms": [algorithm for algorithm in SUPPORTED_ALGORITHMS if algorithm not in REQUIRED_ALGORITHMS],
         "verified_algorithms": [result["algorithm"] for result in results],
+        "verified_standard_profiles": [result["standard_profile"] for result in results],
         "required_role": COMPONENT_ROLE,
         "results": results,
     }
