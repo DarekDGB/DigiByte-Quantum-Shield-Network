@@ -8,7 +8,7 @@ This document defines the DigiByte Quantum Shield Network Shield v4 component-ve
 
 This is a parallel v4 contract. It does not modify or replace the audited v3.2 DigiByte Quantum Shield Network deterministic contract.
 
-V4.8F-B adds a real ML-DSA backend adapter path for DigiByte Quantum Shield Network component evidence. The deterministic TEST-ONLY path remains separate and is retained only for contract and CI locking.
+V4.8F-B adds a real ML-DSA backend adapter path for DigiByte Quantum Shield Network component evidence. The deterministic TEST-ONLY path remains separate and is retained only for contract and CI locking. V4.8H-C adds the component FN-DSA optional-evidence contract with authenticated `standard_profile` binding.
 
 ## Authority Boundary
 
@@ -100,6 +100,32 @@ FN-DSA means FN-DSA, based on Falcon.
 
 FN-DSA is not ML-DSA and cannot satisfy the ML-DSA requirement.
 
+## Standard Profiles
+
+Every signature entry carries an authenticated `standard_profile` field. V4.8H-C locks these policy.v1 profiles for component evidence:
+
+```text
+classical-ed25519 -> rfc8032-ed25519-v1
+ml-dsa            -> fips204-ml-dsa-65-v1
+fn-dsa            -> fips206-draft-falcon1024-v1
+```
+
+`fips206-draft-falcon1024-v1` means draft Falcon-1024 evidence only. It is not a final FIPS 206 production proof. The profile value is part of deterministic TEST-ONLY signature material and the real-signature message bytes, so a profile flip after signing fails closed.
+
+## FN-DSA Optional Evidence Path
+
+V4.8H-C adds the component FN-DSA optional-evidence contract. FN-DSA is additional hybrid evidence only. It is not rescue logic.
+
+Rules:
+
+- FN-DSA absent is allowed under policy.v1.
+- FN-DSA valid is recorded as optional evidence.
+- FN-DSA valid cannot rescue failed `classical-ed25519` or failed `ml-dsa`.
+- FN-DSA valid cannot replace a missing required signature.
+- FN-DSA present but invalid, duplicated, unsupported, wrong-role, wrong-domain, wrong-hash, missing from the trust profile, or carrying an unsupported `standard_profile` is DENY.
+
+All signatures in one bundle bind to the same `signed_payload_hash`. The verifier-required policy wins over embedded evidence.
+
 ## Real ML-DSA Backend Path
 
 DigiByte Quantum Shield Network V4.8F-B introduces an optional real backend adapter for the required `ml-dsa` path:
@@ -175,6 +201,9 @@ A verifier must reject:
 - OQS missing, disabled, wrong mechanism, or wrong algorithm
 - native OQS/liboqs signing, verification, import, mechanism-discovery, version-discovery, or private-key-resolution exception
 - generic backend sign, verify, algorithm-discovery, or non-boolean-verify-result exception
+- unsupported `standard_profile`
+- `standard_profile` flipped after signing
+- FN-DSA present but invalid, duplicated, wrong-role, wrong-domain, wrong-hash, or missing from the trust profile
 - extra fields in real-backend signature entries or registry key records
 - deterministic TEST-ONLY material at the real backend boundary
 
@@ -184,6 +213,6 @@ The original DigiByte Quantum Shield Network v4 pilot uses deterministic TEST-ON
 
 These test signatures are not production private keys and are not production ML-DSA or FN-DSA implementations.
 
-Production PQC adapters must satisfy the same signed payload, domain tag, key role, key version, freshness, and policy rules.
+Production PQC adapters must satisfy the same signed payload, domain tag, key role, key version, freshness, policy, `standard_profile`, and bundle-binding rules.
 
 The V4.8F-B OQS adapter is a real-backend path for DigiByte Quantum Shield Network component evidence only. It does not create transaction signing, broadcast, consensus, or final-execution authority.
