@@ -8,12 +8,25 @@ from dqsnetwork.v4 import COMPONENT_ROLE, KEY_REGISTRY_SCHEMA_VERSION
 CLASSICAL_ED25519 = "classical-ed25519"
 ML_DSA = "ml-dsa"
 FN_DSA = "fn-dsa"
+
+ED25519_RFC8032_PROFILE = "rfc8032-ed25519-v1"
+FIPS204_ML_DSA_65_PROFILE = "fips204-ml-dsa-65-v1"
+FIPS206_DRAFT_FALCON1024_PROFILE = "fips206-draft-falcon1024-v1"
+
 ACTIVE = "active"
 REVOKED = "revoked"
 SUPPORTED_ALGORITHMS = (CLASSICAL_ED25519, ML_DSA, FN_DSA)
 REQUIRED_ALGORITHMS = (CLASSICAL_ED25519, ML_DSA)
 OPTIONAL_ALGORITHMS = (FN_DSA,)
 SUPPORTED_ROLES = (COMPONENT_ROLE,)
+ALGORITHM_STANDARD_PROFILES = {
+    CLASSICAL_ED25519: (ED25519_RFC8032_PROFILE,),
+    ML_DSA: (FIPS204_ML_DSA_65_PROFILE,),
+    FN_DSA: (FIPS206_DRAFT_FALCON1024_PROFILE,),
+}
+DEFAULT_STANDARD_PROFILE_BY_ALGORITHM = {
+    algorithm: profiles[0] for algorithm, profiles in ALGORITHM_STANDARD_PROFILES.items()
+}
 
 
 def require_non_empty_str(value: Any, *, field: str) -> str:
@@ -33,6 +46,19 @@ def require_supported_algorithm(algorithm: Any) -> str:
     if clean not in SUPPORTED_ALGORITHMS:
         raise ValueError("unsupported Shield v4 signature algorithm")
     return clean
+
+
+def default_standard_profile_for_algorithm(algorithm: Any) -> str:
+    clean_algorithm = require_supported_algorithm(algorithm)
+    return DEFAULT_STANDARD_PROFILE_BY_ALGORITHM[clean_algorithm]
+
+
+def require_supported_standard_profile(*, algorithm: Any, standard_profile: Any) -> str:
+    clean_algorithm = require_supported_algorithm(algorithm)
+    clean_profile = require_non_empty_str(standard_profile, field="standard_profile")
+    if clean_profile not in ALGORITHM_STANDARD_PROFILES[clean_algorithm]:
+        raise ValueError("unsupported Shield v4 signature standard_profile")
+    return clean_profile
 
 
 def parse_utc_timestamp(value: Any, *, field: str) -> datetime:
@@ -85,7 +111,16 @@ def validate_trust_profile(profile: dict[str, Any]) -> dict[str, Any]:
     for entry in profile["entries"]:
         if not isinstance(entry, dict):
             raise ValueError("trust profile entry must be dict")
-        if set(entry.keys()) != {"role", "key_id", "key_version", "algorithm", "not_before", "not_after", "status", "public_key"}:
+        if set(entry.keys()) != {
+            "role",
+            "key_id",
+            "key_version",
+            "algorithm",
+            "not_before",
+            "not_after",
+            "status",
+            "public_key",
+        }:
             raise ValueError("trust profile entry fields must match required schema")
         role = require_non_empty_str(entry["role"], field="role")
         if role not in SUPPORTED_ROLES:
@@ -93,7 +128,9 @@ def validate_trust_profile(profile: dict[str, Any]) -> dict[str, Any]:
         key_id = require_non_empty_str(entry["key_id"], field="key_id")
         key_version = require_positive_int(entry["key_version"], field="key_version")
         algorithm = require_supported_algorithm(entry["algorithm"])
-        not_before, not_after = validate_freshness_window(not_before=entry["not_before"], not_after=entry["not_after"])
+        not_before, not_after = validate_freshness_window(
+            not_before=entry["not_before"], not_after=entry["not_after"]
+        )
         status = require_non_empty_str(entry["status"], field="status")
         if status not in {ACTIVE, REVOKED}:
             raise ValueError("unsupported key status")
@@ -114,7 +151,11 @@ def validate_trust_profile(profile: dict[str, Any]) -> dict[str, Any]:
                 "public_key": public_key,
             }
         )
-    return {"schema_version": KEY_REGISTRY_SCHEMA_VERSION, "registry_version": registry_version, "entries": checked_entries}
+    return {
+        "schema_version": KEY_REGISTRY_SCHEMA_VERSION,
+        "registry_version": registry_version,
+        "entries": checked_entries,
+    }
 
 
 def find_trusted_key(
