@@ -7,7 +7,12 @@ from typing import Any, Protocol, TypeVar
 
 from dqsnetwork.v4 import COMPONENT_ROLE
 from dqsnetwork.v4.signing import COMPONENT_VERDICT_DOMAIN
-from dqsnetwork.v4.trust_profile import require_non_empty_str, require_positive_int, require_supported_algorithm
+from dqsnetwork.v4.trust_profile import (
+    require_non_empty_str,
+    require_positive_int,
+    require_supported_algorithm,
+    require_supported_standard_profile,
+)
 
 REAL_CRYPTO_SIGNATURE_INPUT_PREFIX = "DGB-SHIELD-V4-REAL-CRYPTO-SIGNATURE-INPUT"
 REAL_SIGNATURE_ENCODING_PREFIX = "b64u:"
@@ -19,7 +24,7 @@ _T = TypeVar("_T")
 
 
 class DqsnV4RealCryptoBackendError(ValueError):
-    """Base fail-closed error for DQSN Shield v4 real crypto backend wiring."""
+    """Base fail-closed error for DigiByte Quantum Shield Network Shield v4 real crypto backend wiring."""
 
 
 class DqsnV4RealCryptoBackendUnavailable(DqsnV4RealCryptoBackendError):
@@ -31,7 +36,7 @@ class DqsnV4RealCryptoMaterialError(DqsnV4RealCryptoBackendError):
 
 
 class DqsnV4RealCryptoBackend(Protocol):
-    """Minimal production crypto backend contract for DQSN v4 evidence.
+    """Minimal production crypto backend contract for DigiByte Quantum Shield Network v4 evidence.
 
     Implementations may wrap liboqs, an HSM, a FIPS-validated module, or another
     deployment-controlled backend. This protocol intentionally avoids importing a
@@ -50,8 +55,20 @@ class DqsnV4RealCryptoBackend(Protocol):
 
 
 RealCryptoSignatureVerifier = Callable[[dict[str, Any], dict[str, Any]], bool]
-_SIGNATURE_ENTRY_FIELDS = frozenset({"algorithm", "key_id", "key_version", "signed_payload_hash", "domain_tag", "signature"})
-_REGISTRY_KEY_FIELDS = frozenset({"role", "key_id", "key_version", "algorithm", "not_before", "not_after", "status", "public_key"})
+_SIGNATURE_ENTRY_FIELDS = frozenset(
+    {
+        "algorithm",
+        "standard_profile",
+        "key_id",
+        "key_version",
+        "signed_payload_hash",
+        "domain_tag",
+        "signature",
+    }
+)
+_REGISTRY_KEY_FIELDS = frozenset(
+    {"role", "key_id", "key_version", "algorithm", "not_before", "not_after", "status", "public_key"}
+)
 
 
 def _wrap_value_error(operation: str, callback: Callable[[], _T]) -> _T:
@@ -76,6 +93,14 @@ def _require_real_positive_int(value: Any, *, field: str) -> int:
 def _require_real_supported_algorithm(algorithm: Any) -> str:
     clean = _require_real_non_empty_str(algorithm, field="algorithm")
     return _wrap_value_error("algorithm", lambda: require_supported_algorithm(clean))
+
+
+def _require_real_supported_standard_profile(*, algorithm: str, standard_profile: Any) -> str:
+    clean = _require_real_non_empty_str(standard_profile, field="standard_profile")
+    return _wrap_value_error(
+        "standard_profile",
+        lambda: require_supported_standard_profile(algorithm=algorithm, standard_profile=clean),
+    )
 
 
 def _require_hash(value: Any, *, field: str) -> str:
@@ -147,23 +172,31 @@ def reject_test_only_key_material(key: dict[str, Any]) -> None:
 def build_real_crypto_signature_input(
     *,
     algorithm: str,
+    standard_profile: str,
     domain_tag: str,
     signed_payload_hash: str,
     key_id: str,
     key_version: int,
 ) -> bytes:
-    """Build the exact production-signature message bytes for DQSN evidence.
+    """Build the exact production-signature message bytes for DigiByte Quantum Shield Network evidence.
 
-    The signed payload hash is already domain-separated over the canonical DQSN
-    verdict payload. The real-signature input binds that hash to the concrete
-    signature entry, algorithm, key id, and key version so entries cannot be
-    spliced across bundles.
+    The signed payload hash is already domain-separated over the canonical DigiByte Quantum Shield Network
+    component verdict payload. The real-signature input binds that hash to the
+    concrete signature entry, algorithm, standard profile, key id, and key version
+    so entries cannot be spliced across bundles or reinterpreted under another
+    FN-DSA/Falcon profile.
     """
 
     clean_algorithm = _require_real_supported_algorithm(algorithm)
     clean_domain = _require_real_non_empty_str(domain_tag, field="domain_tag")
     if clean_domain not in _ALLOWED_DOMAIN_TAGS:
-        raise DqsnV4RealCryptoBackendError("domain_tag must be the DQSN Shield v4 component signing domain")
+        raise DqsnV4RealCryptoBackendError(
+            "domain_tag must be the DigiByte Quantum Shield Network Shield v4 component signing domain"
+        )
+    clean_profile = _require_real_supported_standard_profile(
+        algorithm=clean_algorithm,
+        standard_profile=standard_profile,
+    )
     clean_hash = _require_hash(signed_payload_hash, field="signed_payload_hash")
     clean_key_id = _require_real_non_empty_str(key_id, field="key_id")
     clean_key_version = _require_real_positive_int(key_version, field="key_version")
@@ -173,6 +206,7 @@ def build_real_crypto_signature_input(
             clean_domain,
             clean_hash,
             clean_algorithm,
+            clean_profile,
             clean_key_id,
             str(clean_key_version),
         )
@@ -234,6 +268,7 @@ def _call_backend_verify(
 def build_signature_entry_with_real_backend(
     *,
     algorithm: str,
+    standard_profile: str,
     domain_tag: str,
     signed_payload_hash: str,
     key_id: str,
@@ -241,15 +276,20 @@ def build_signature_entry_with_real_backend(
     private_key_reference: str,
     backend: DqsnV4RealCryptoBackend,
 ) -> dict[str, Any]:
-    """Build a DQSN Shield v4 signature entry using a real backend."""
+    """Build a DigiByte Quantum Shield Network Shield v4 signature entry using a real backend."""
 
     clean_algorithm = _require_real_supported_algorithm(algorithm)
     clean_domain = _require_real_non_empty_str(domain_tag, field="domain_tag")
+    clean_profile = _require_real_supported_standard_profile(
+        algorithm=clean_algorithm,
+        standard_profile=standard_profile,
+    )
     clean_hash = _require_hash(signed_payload_hash, field="signed_payload_hash")
     clean_key_id = _require_real_non_empty_str(key_id, field="key_id")
     clean_key_version = _require_real_positive_int(key_version, field="key_version")
     message = build_real_crypto_signature_input(
         algorithm=clean_algorithm,
+        standard_profile=clean_profile,
         domain_tag=clean_domain,
         signed_payload_hash=clean_hash,
         key_id=clean_key_id,
@@ -267,6 +307,7 @@ def build_signature_entry_with_real_backend(
     decode_binary_signature_material(clean_signature, field="signature")
     return {
         "algorithm": clean_algorithm,
+        "standard_profile": clean_profile,
         "key_id": clean_key_id,
         "key_version": clean_key_version,
         "signed_payload_hash": clean_hash,
@@ -306,19 +347,24 @@ def verify_signature_entry_with_real_backend(
     *,
     backend: DqsnV4RealCryptoBackend,
 ) -> bool:
-    """Verify one DQSN Shield v4 signature entry with a production backend."""
+    """Verify one DigiByte Quantum Shield Network Shield v4 signature entry with a production backend."""
 
     if not isinstance(entry, dict):
         raise DqsnV4RealCryptoBackendError("signature entry must be dict")
     if set(entry.keys()) != _SIGNATURE_ENTRY_FIELDS:
         raise DqsnV4RealCryptoBackendError("signature entry fields must match required schema")
     algorithm = _require_real_supported_algorithm(entry.get("algorithm"))
+    standard_profile = _require_real_supported_standard_profile(
+        algorithm=algorithm,
+        standard_profile=entry.get("standard_profile"),
+    )
     key_id = _require_real_non_empty_str(entry.get("key_id"), field="key_id")
     key_version = _require_real_positive_int(entry.get("key_version"), field="key_version")
     checked_key = _validated_key_fields(key, algorithm=algorithm, key_id=key_id, key_version=key_version)
     _require_backend_supports_algorithm(backend, algorithm)
     message = build_real_crypto_signature_input(
         algorithm=algorithm,
+        standard_profile=standard_profile,
         domain_tag=_require_real_non_empty_str(entry.get("domain_tag"), field="domain_tag"),
         signed_payload_hash=_require_hash(entry.get("signed_payload_hash"), field="signed_payload_hash"),
         key_id=key_id,
@@ -338,7 +384,7 @@ def verify_signature_entry_with_real_backend(
 def make_real_crypto_signature_verifier(
     backend: DqsnV4RealCryptoBackend,
 ) -> RealCryptoSignatureVerifier:
-    """Adapt a real crypto backend to the existing DQSN bundle verifier callback."""
+    """Adapt a real crypto backend to the existing DigiByte Quantum Shield Network bundle verifier callback."""
 
     def _verify(entry: dict[str, Any], key: dict[str, Any]) -> bool:
         return verify_signature_entry_with_real_backend(entry, key, backend=backend)
