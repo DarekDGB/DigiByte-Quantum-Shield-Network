@@ -16,12 +16,14 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | add required classical + ML-DSA test signatures | signed envelope validates under TEST-ONLY verifier |
 | validate with matching context hash | verification summary returned |
 | verify required role | `shield_component_dqsn` only |
-| build real crypto signature input | frozen DigiByte Quantum Shield Network component domain bytes |
+| build real crypto signature input | frozen DigiByte Quantum Shield Network component domain bytes with authenticated `standard_profile` |
 | build real ML-DSA signature entry through backend adapter | `b64u:` signature entry produced |
 | verify real ML-DSA signature entry through backend adapter | verification returns true |
 | lazy OQS fake backend exposes version | backend metadata includes locked mechanism |
 | optional gated real-liboqs ML-DSA proof workflow | runs only with `SHIELD_V4_REAL_OQS=1` and JUnit not-skipped guard |
 | shared frozen component-verdict KAT vector | canonical JSON, domain-separated bytes, and signed payload hash match the shared V4.8G-R4 fixture |
+| FN-DSA signed-message KAT | `fn-dsa`, `fips206-draft-falcon1024-v1`, and component domain bytes match fixture |
+| valid optional FN-DSA evidence with required signatures | accepted and recorded as optional evidence |
 
 ## Negative Tests
 
@@ -68,6 +70,15 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | empty OQS message, secret key, or signature bytes | fail closed |
 | wrong-length real liboqs public key in gated proof | fail closed through component backend error hierarchy |
 | gated real-liboqs proof skips in dedicated job | rejected by JUnit not-skipped guard |
+| FN-DSA present but invalid | fail closed |
+| FN-DSA valid cannot rescue invalid ML-DSA | fail closed |
+| FN-DSA valid cannot rescue invalid classical signature | fail closed |
+| FN-DSA valid cannot replace missing ML-DSA | fail closed |
+| FN-DSA wrong role or missing trust-profile key | fail closed |
+| FN-DSA wrong payload hash or wrong domain | fail closed |
+| duplicate FN-DSA entry | fail closed |
+| unsupported FN-DSA `standard_profile` | fail closed |
+| FN-DSA `standard_profile` flipped after signing | fail closed |
 
 ## Required CI Gate
 
@@ -102,6 +113,30 @@ a3881f27444ce73de875a15c8b413785a4fec4f4c03baaa6f8ee2fbf839736ae
 ```
 
 The KAT is TEST-ONLY deterministic canonicalization evidence only. It does not sign transactions, broadcast, change DigiByte consensus, or claim live liboqs execution.
+
+## V4.8H-C FN-DSA Optional Evidence Checks
+
+The component test suite now includes:
+
+```text
+tests/test_v48h_fn_dsa_optional_evidence.py
+tests/test_v48h_fn_dsa_signed_message_kat.py
+tests/fixtures/v4/fn_dsa_signed_message_draft_profile_kat.json
+```
+
+These tests prove:
+
+- FN-DSA absent + required signatures valid -> ACCEPT;
+- FN-DSA valid + required signatures valid -> ACCEPT with optional evidence recorded;
+- FN-DSA valid + ML-DSA invalid -> DENY;
+- FN-DSA valid + classical invalid -> DENY;
+- FN-DSA valid but ML-DSA missing -> DENY;
+- FN-DSA invalid while present -> DENY;
+- FN-DSA wrong payload hash or wrong domain -> DENY;
+- FN-DSA wrong role or missing trust-profile key -> DENY;
+- duplicate FN-DSA entries -> DENY;
+- unsupported FN-DSA `standard_profile` -> DENY;
+- `standard_profile` flipped after signing -> DENY.
 
 ## Authority Boundary
 
