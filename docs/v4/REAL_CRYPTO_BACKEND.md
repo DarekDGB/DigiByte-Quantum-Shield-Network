@@ -74,6 +74,26 @@ OQS mechanism:    ML-DSA-65
 
 The mechanism is deliberately locked for this backend. A caller cannot silently swap `ML-DSA-44`, `ML-DSA-87`, Falcon/FN-DSA, or another mechanism behind the Shield policy name.
 
+## V4.8H-E OQS Falcon-1024 mapping
+
+V4.8H-E adds an optional OQS Falcon-1024 backend for live FN-DSA draft-profile evidence:
+
+```text
+dqsnetwork/v4/oqs_falcon_backend.py
+tests/test_v48h_e_oqs_falcon_backend.py
+tests/test_v48h_e_real_oqs_falcon_backend.py
+```
+
+The backend mapping is locked as:
+
+```text
+Shield algorithm: fn-dsa
+standard_profile: fips206-draft-falcon1024-v1
+OQS mechanism:    Falcon-1024
+```
+
+This backend is optional evidence only. It does not make FN-DSA required, does not let FN-DSA rescue failed or missing `classical-ed25519` or `ml-dsa`, does not sign transactions, does not broadcast, and does not change DigiByte consensus. It is draft Falcon-1024 profile evidence only, not a final FIPS 206 production claim.
+
 ## Frozen real-signature input
 
 Every real DigiByte Quantum Shield Network component-verdict signature signs the exact byte string:
@@ -99,9 +119,21 @@ Rules:
 
 The `standard_profile` is authenticated message input, not display-only metadata. The `signed_payload_hash` is already computed over the domain-separated canonical DigiByte Quantum Shield Network verdict payload. The real-signature input binds that hash to the concrete signature entry so signatures cannot be spliced across algorithms, standard profiles, keys, roles, or bundles.
 
+V4.8H-E extends the dedicated PQC workflow so it sets both `SHIELD_V4_REAL_OQS=1` and `SHIELD_V4_REAL_OQS_FALCON=1`, then runs the ML-DSA proof and the Falcon-1024 proof in the same guarded JUnit report:
+
+```text
+python -m pytest --override-ini addopts='' \
+  tests/test_v48g_real_oqs_mldsa_backend.py \
+  tests/test_v48h_e_real_oqs_falcon_backend.py \
+  -q --junitxml=shield-v4-real-oqs-results.xml
+python scripts/assert_real_oqs_junit_not_skipped.py shield-v4-real-oqs-results.xml
+```
+
+A public live Falcon-1024 claim requires that dedicated workflow to finish green with `skipped == 0`, `failures == 0`, and `errors == 0` for the guarded report.
+
 ## Binary encoding lock
 
-Real ML-DSA signatures and public keys are binary. DigiByte Quantum Shield Network real backend adapters use explicit unpadded base64url encoding with the prefix:
+Real ML-DSA and FN-DSA/Falcon-1024 signatures and public keys are binary. DigiByte Quantum Shield Network real backend adapters use explicit unpadded base64url encoding with the prefix:
 
 ```text
 b64u:<unpadded-base64url-bytes>
