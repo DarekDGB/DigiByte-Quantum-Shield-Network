@@ -160,5 +160,15 @@ V4.8H-C adds:
 - shared component FN-DSA signed-message KAT fixture in `tests/fixtures/v4/fn_dsa_signed_message_draft_profile_kat.json`;
 - tests proving FN-DSA absence is allowed, valid FN-DSA is recorded, present-invalid FN-DSA is fatal, and FN-DSA cannot rescue failed or missing required signatures.
 
-V4.8H-C does not add a live FN-DSA/Falcon backend and does not claim final FIPS 206 compliance.
+V4.8H-C does not claim final FIPS 206 compliance. V4.8H-E adds the gated live Falcon-1024 backend path while keeping FN-DSA optional and draft-profile only.
 
+## V4.8H-E Final Hybrid Evidence Lock
+
+V4.8H-E adds:
+
+- the optional OQS Falcon-1024 backend in `dqsnetwork/v4/oqs_falcon_backend.py`;
+- deterministic backend-contract tests in `tests/test_v48h_e_oqs_falcon_backend.py`;
+- a gated real-liboqs Falcon-1024 proof test in `tests/test_v48h_e_real_oqs_falcon_backend.py`;
+- a dedicated PQC workflow that runs both live ML-DSA and live Falcon-1024 proofs with the not-skipped JUnit guard.
+
+The H-E lock keeps FN-DSA optional. It does not upgrade FN-DSA to required policy, does not claim final FIPS 206 support, and does not let Falcon/FN-DSA override required `classical-ed25519` or `ml-dsa` failures.
