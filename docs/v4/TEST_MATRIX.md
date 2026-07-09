@@ -138,6 +138,26 @@ These tests prove:
 - unsupported FN-DSA `standard_profile` -> DENY;
 - `standard_profile` flipped after signing -> DENY.
 
+## V4.8H-E Full Hybrid and Live-Falcon Checks
+
+V4.8H-E adds these checks:
+
+```text
+tests/test_v48h_e_oqs_falcon_backend.py
+tests/test_v48h_e_real_oqs_falcon_backend.py
+```
+
+The deterministic backend-contract test proves Falcon-1024 adapter wiring, `b64u:` binary material parsing, wrong-algorithm denial, disabled-mechanism denial, native exception fail-closed handling, and `standard_profile` binding.
+
+The real-liboqs test is gated and must be run only by the dedicated PQC workflow with:
+
+```text
+SHIELD_V4_REAL_OQS=1
+SHIELD_V4_REAL_OQS_FALCON=1
+```
+
+A live Falcon-1024 claim requires the dedicated PQC workflow JUnit guard to report `skipped == 0`, `failures == 0`, and `errors == 0`. FN-DSA remains optional evidence and is not final FIPS 206 proof.
+
 ## Authority Boundary
 
 Passing these tests proves only the DigiByte Quantum Shield Network v4 component-verdict contract and DigiByte Quantum Shield Network real ML-DSA adapter boundary.
