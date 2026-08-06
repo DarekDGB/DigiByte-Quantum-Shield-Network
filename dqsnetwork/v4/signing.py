@@ -110,11 +110,23 @@ def require_hash(value: Any, *, field: str) -> str:
     return clean
 
 
-def build_signature_bundle(*, signatures: list[dict[str, Any]], policy_version: str = POLICY_VERSION) -> dict[str, Any]:
+def build_signature_bundle(
+    *, signatures: list[dict[str, Any]], policy_version: str = POLICY_VERSION
+) -> dict[str, Any]:
+    algorithm_rank = {
+        algorithm: index for index, algorithm in enumerate(SUPPORTED_ALGORITHMS)
+    }
+
+    def canonical_rank(entry: dict[str, Any]) -> int:
+        if not isinstance(entry, dict):
+            raise ValueError("signature entry must be dict")
+        algorithm = require_supported_algorithm(entry.get("algorithm"))
+        return algorithm_rank[algorithm]
+
     return {
         "schema_version": SIGNATURE_BUNDLE_SCHEMA_VERSION,
         "policy_version": policy_version,
-        "signatures": signatures,
+        "signatures": sorted(signatures, key=canonical_rank),
     }
 
 
@@ -196,6 +208,8 @@ def verify_signature_bundle(
         raise ValueError("signature bundle signatures must be non-empty list")
     expected_hash = require_hash(expected_signed_payload_hash, field="expected_signed_payload_hash")
     seen_algorithms: set[str] = set()
+    prepared_entries: list[tuple[dict[str, Any], str, str, str, int]] = []
+    algorithm_sequence: list[str] = []
     results: list[dict[str, Any]] = []
     for entry in bundle["signatures"]:
         if not isinstance(entry, dict):
@@ -210,14 +224,29 @@ def verify_signature_bundle(
         if algorithm in seen_algorithms:
             raise ValueError("duplicate signature algorithm")
         seen_algorithms.add(algorithm)
+        algorithm_sequence.append(algorithm)
         if require_hash(entry["signed_payload_hash"], field="signed_payload_hash") != expected_hash:
             raise ValueError("signature signed_payload_hash mismatch")
         if require_non_empty_str(entry["domain_tag"], field="domain_tag") != COMPONENT_VERDICT_DOMAIN:
             raise ValueError("signature domain tag mismatch")
+        key_id = require_non_empty_str(entry["key_id"], field="key_id")
+        key_version = require_positive_int(entry["key_version"], field="key_version")
+        prepared_entries.append((entry, algorithm, standard_profile, key_id, key_version))
+
+    canonical_sequence = [
+        algorithm for algorithm in SUPPORTED_ALGORITHMS if algorithm in seen_algorithms
+    ]
+    if algorithm_sequence != canonical_sequence:
+        raise ValueError("signature algorithms must use canonical policy order")
+    missing = set(REQUIRED_ALGORITHMS) - seen_algorithms
+    if missing:
+        raise ValueError("signature policy requirements not satisfied")
+
+    for entry, algorithm, standard_profile, key_id, key_version in prepared_entries:
         key = find_trusted_key(
             trust_profile,
-            key_id=require_non_empty_str(entry["key_id"], field="key_id"),
-            key_version=require_positive_int(entry["key_version"], field="key_version"),
+            key_id=key_id,
+            key_version=key_version,
             algorithm=algorithm,
             verification_time=verification_time,
             artifact_not_before=artifact_not_before,
@@ -240,9 +269,6 @@ def verify_signature_bundle(
                 "verified": True,
             }
         )
-    missing = set(REQUIRED_ALGORITHMS) - seen_algorithms
-    if missing:
-        raise ValueError("signature policy requirements not satisfied")
     return {
         "policy_version": POLICY_VERSION,
         "required_algorithms": list(REQUIRED_ALGORITHMS),
