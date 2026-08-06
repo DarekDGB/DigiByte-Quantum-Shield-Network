@@ -79,6 +79,102 @@ def test_v48h_dqsn_fn_dsa_absent_allowed_and_valid_optional_evidence_recorded() 
     assert summary["results"][-1]["standard_profile"] == FIPS206_DRAFT_FALCON1024_PROFILE
 
 
+@pytest.mark.parametrize(
+    "supplied_algorithms",
+    [
+        (ML_DSA, CLASSICAL_ED25519),
+        (FN_DSA, ML_DSA, CLASSICAL_ED25519),
+        (CLASSICAL_ED25519, FN_DSA, ML_DSA),
+    ],
+)
+def test_v49i3_dqsn_bundle_builder_emits_canonical_order_without_mutating_input(
+    supplied_algorithms: tuple[str, ...],
+) -> None:
+    payload_hash = signed_payload_hash(payload=unsigned_payload())
+    supplied_signatures = [
+        build_test_signature_entry(algorithm=algorithm, signed_hash=payload_hash)
+        for algorithm in supplied_algorithms
+    ]
+    original_signatures = copy.deepcopy(supplied_signatures)
+
+    bundle = build_signature_bundle(signatures=supplied_signatures)
+
+    assert [entry["algorithm"] for entry in bundle["signatures"]] == [
+        CLASSICAL_ED25519,
+        ML_DSA,
+        *([FN_DSA] if FN_DSA in supplied_algorithms else []),
+    ]
+    assert supplied_signatures == original_signatures
+    assert bundle["signatures"] is not supplied_signatures
+
+
+def test_v49i3_dqsn_bundle_builder_preserves_empty_internal_shell_construction() -> None:
+    bundle = build_signature_bundle(signatures=[])
+
+    assert bundle["signatures"] == []
+
+
+def test_v49i3_dqsn_bundle_builder_rejects_non_object_entry() -> None:
+    with pytest.raises(ValueError, match="signature entry must be dict"):
+        build_signature_bundle(signatures=["bad"])  # type: ignore[list-item]
+
+
+@pytest.mark.parametrize(
+    "algorithm_sequence",
+    [
+        (ML_DSA, CLASSICAL_ED25519),
+        (FN_DSA, CLASSICAL_ED25519, ML_DSA),
+        (FN_DSA, ML_DSA, CLASSICAL_ED25519),
+        (CLASSICAL_ED25519, FN_DSA, ML_DSA),
+        (ML_DSA, CLASSICAL_ED25519, FN_DSA),
+        (ML_DSA, FN_DSA, CLASSICAL_ED25519),
+    ],
+)
+def test_v49i3_dqsn_verifier_rejects_noncanonical_order_before_key_lookup_or_crypto(
+    algorithm_sequence: tuple[str, ...],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload_hash = signed_payload_hash(payload=unsigned_payload())
+    bundle = build_signature_bundle(
+        signatures=[
+            build_test_signature_entry(algorithm=CLASSICAL_ED25519, signed_hash=payload_hash),
+            build_test_signature_entry(algorithm=ML_DSA, signed_hash=payload_hash),
+        ]
+    )
+    bundle["signatures"] = [
+        build_test_signature_entry(algorithm=algorithm, signed_hash=payload_hash)
+        for algorithm in algorithm_sequence
+    ]
+    key_lookup_calls: list[tuple[tuple, dict]] = []
+    verifier_calls: list[tuple[dict, dict]] = []
+
+    def tracking_find_trusted_key(*args: object, **kwargs: object) -> dict:
+        key_lookup_calls.append((args, kwargs))
+        raise AssertionError("canonical-order failure reached key lookup")
+
+    def tracking_verifier(entry: dict, key: dict) -> bool:
+        verifier_calls.append((entry, key))
+        return True
+
+    monkeypatch.setattr(
+        "dqsnetwork.v4.signing.find_trusted_key",
+        tracking_find_trusted_key,
+    )
+    with pytest.raises(ValueError, match="canonical policy order"):
+        verify_signature_bundle(
+            bundle,
+            expected_signed_payload_hash=payload_hash,
+            trust_profile=build_test_trust_profile(),
+            verification_time=VERIFY_AT,
+            artifact_not_before=NOT_BEFORE,
+            artifact_not_after=NOT_AFTER,
+            verifier=tracking_verifier,
+        )
+
+    assert key_lookup_calls == []
+    assert verifier_calls == []
+
+
 @pytest.mark.parametrize("required_algorithm", [CLASSICAL_ED25519, ML_DSA])
 def test_v48h_dqsn_valid_fn_dsa_cannot_rescue_required_failure(required_algorithm: str) -> None:
     verdict = _valid_bundle_verdict(algorithms=(CLASSICAL_ED25519, ML_DSA, FN_DSA))
