@@ -24,6 +24,7 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | shared frozen component-verdict KAT vector | canonical JSON, domain-separated bytes, and signed payload hash match the shared V4.8G-R4 fixture |
 | FN-DSA signed-message KAT | `fn-dsa`, `fips206-draft-falcon1024-v1`, and component domain bytes match fixture |
 | valid optional FN-DSA evidence with required signatures | accepted and recorded as optional evidence |
+| producer receives reversed or interleaved supported entries | emits `classical-ed25519`, `ml-dsa`, then optional `fn-dsa` without mutating or aliasing caller input |
 
 ## Negative Tests
 
@@ -79,6 +80,8 @@ The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 c
 | duplicate FN-DSA entry | fail closed |
 | unsupported FN-DSA `standard_profile` | fail closed |
 | FN-DSA `standard_profile` flipped after signing | fail closed |
+| reversed required signature order | fail closed before trust lookup or cryptographic verification |
+| interleaved or optional-first three-entry order | fail closed before trust lookup or cryptographic verification |
 
 ## Required CI Gate
 
@@ -89,14 +92,26 @@ pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
 
 ## Optional Real-OQS Proof Gate
 
-Default CI does not require liboqs. The live liboqs proof is a separate gated job:
+Default CI does not require liboqs. The live liboqs proof is a separate gated
+job that executes both required guarded nodes:
 
 ```text
-SHIELD_V4_REAL_OQS=1 python -m pytest --override-ini addopts='' tests/test_v48g_real_oqs_mldsa_backend.py -q --junitxml=shield-v4-real-oqs-results.xml
-python scripts/assert_real_oqs_junit_not_skipped.py shield-v4-real-oqs-results.xml
+SHIELD_V4_REAL_OQS=1 SHIELD_V4_REAL_OQS_FALCON=1 \
+python -m pytest --override-ini addopts='' \
+  tests/test_v48g_real_oqs_mldsa_backend.py \
+  tests/test_v48h_e_real_oqs_falcon_backend.py \
+  -q --junitxml=shield-v4-real-oqs-results.xml
+
+python scripts/assert_real_oqs_junit_not_skipped.py \
+  shield-v4-real-oqs-results.xml \
+  --min-tests 2 \
+  --require-testcase "tests/test_v48g_real_oqs_mldsa_backend.py::test_v48g_real_oqs_mldsa65_dqsn_backend_round_trip_and_negatives" \
+  --require-testcase "tests/test_v48h_e_real_oqs_falcon_backend.py::test_v48h_e_real_oqs_falcon1024_backend_round_trip_and_negatives"
 ```
 
-The guard must prove at least one testcase ran and that `skipped == 0`, `failures == 0`, and `errors == 0` before the run can support a live-liboqs claim.
+The guard must prove that both exact testcase nodes ran and that `skipped == 0`,
+`failures == 0`, and `errors == 0` before the run can support a live-liboqs
+claim.
 
 ## V4.8G-R4 Audit Cleanup Checks
 
