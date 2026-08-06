@@ -126,6 +126,27 @@ Rules:
 
 All signatures in one bundle bind to the same `signed_payload_hash`. The verifier-required policy wins over embedded evidence.
 
+### Canonical Signature-Bundle Order
+
+DigiByte Quantum Shield Network producers must emit signature entries in this
+exact `policy.v1` order:
+
+```text
+classical-ed25519
+ml-dsa
+fn-dsa, when present
+```
+
+The bundle builder canonicalizes supported input entries into that sequence
+without mutating or aliasing the caller's list. A verifier must not repair,
+sort, or otherwise normalize a received bundle. Reversed or interleaved
+algorithm sequences are malformed and must fail before trust-registry lookup or
+cryptographic verification.
+
+This ordering rule does not change strict required-signature AND semantics.
+FN-DSA remains optional-last evidence only. It cannot replace or rescue either
+required algorithm.
+
 ## Real ML-DSA Backend Path
 
 DigiByte Quantum Shield Network V4.8F-B introduces an optional real backend adapter for the required `ml-dsa` path:
