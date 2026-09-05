@@ -12,8 +12,12 @@
 ✅ **Completed.**
 
 DQSN v3 is implemented, tested, and contract-locked.
-The v3.1.0 hardening release preserves this contract while tightening UTC handling, release metadata, and manual test reproducibility.
-This document is preserved as a **historical record** of the v2 → v3 upgrade and v3.1.0 release-hardening pass.
+The historical v3.1.0 hardening release preserved this contract while
+tightening UTC handling, release metadata, and manual test reproducibility.
+The later v3.2.0 manifest lock is also complete. This document is preserved as
+a **historical record** of the v2 to v3 upgrade and those completed hardening
+passes. Current distribution and Shield v4 candidate status is recorded in
+`README.md` and `docs/v4/RELEASE_STATUS_v4.0.0.md`.
 
 It no longer describes pending work.
 
@@ -78,7 +82,7 @@ pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
 
 Using `.[test]` keeps local manual testing aligned with CI and prevents optional FastAPI-related tests from being skipped accidentally.
 
-## DQSN v3.1.0 is considered release-ready when:
+## Historical v3.1.0 completion criteria
 
 - v3 contract logic is the single authority path ✅
 - legacy code is isolated and non-authoritative ✅
