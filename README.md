@@ -1,248 +1,175 @@
-# 🌐 DigiByte Quantum Shield Network v3.2.0
+# DigiByte Quantum Shield Network
 
 ![Tests](https://github.com/DarekDGB/DigiByte-Quantum-Shield-Network/actions/workflows/tests.yml/badge.svg)
-![Coverage 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-ORCHESTRATOR--BOUNDARY--LOCKED-critical)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-CONTROLLED--PRE--RELEASE-orange)
 
-**Deterministic Signal Aggregation Layer • Signal → Aggregate Evidence**  
-**Architecture & Implementation by @DarekDGB — MIT Licensed**
+Author attribution: DarekDGB
 
----
+Distribution version: `4.0.0`
+Candidate tag: `v4.0.0`
+Release status: controlled pre-release; not released and not tagged
 
-## Purpose
+DigiByte Quantum Shield Network (DQSN) is the deterministic signal-aggregation
+evidence component of the DigiByte Quantum Shield. It validates, normalizes,
+deduplicates, and aggregates bounded threat-signal evidence before higher
+Shield layers consume it. Its parallel Shield v4 surface produces role-bound,
+cryptographically verifiable DQSN component evidence for the Shield
+Orchestrator.
 
-**DigiByte Quantum Shield Network v3.2.0** is the deterministic signal aggregation layer of the **DigiByte Quantum Shield**.
+The distribution retains the frozen v3 compatibility evaluator while exposing
+the separately versioned Shield v4 evidence contract. The distribution-version
+alignment changes neither protocol.
 
-DQSN validates, normalizes, deduplicates, and aggregates threat-signal evidence before it is consumed by higher Shield layers.
+## Authority boundary
 
-DQSN may process evidence from:
+DQSN does not:
 
-- Sentinel AI threat signals
-- local defensive observations
-- node-wrapper defensive signals
-- wallet-wrapper defensive signals
-- Shield-compatible component evidence
+- sign or broadcast DigiByte transactions;
+- hold, derive, access, or control wallet private keys;
+- change balances, chain state, mempool rules, or DigiByte consensus;
+- act as the final threat, spending, policy, or execution authority;
+- produce the final Shield receipt;
+- bypass the Shield Orchestrator; or
+- override AdamantineOS.
 
-DQSN does **not**:
+DQSN may sign or verify its own component evidence through the reviewed Shield
+v4 interfaces. That domain-separated evidence signing is not transaction
+signing and grants no wallet-key custody, broadcast, consensus, or execution
+authority.
 
-- sign transactions
-- broadcast transactions
-- hold, derive, or access private keys
-- modify DigiByte consensus
-- approve AdamantineOS execution directly
-- override the Shield Orchestrator
-- act as final execution authority
+The Shield Orchestrator verifies DQSN component evidence and produces the only
+Shield receipt AdamantineOS may consume. AdamantineOS remains the final
+fail-closed policy and execution boundary. Shield `ALLOW` permits only
+continuation to those independent checks.
 
-DQSN is an **evidence aggregation component**.
-
----
-
-## Position in the DigiByte Quantum Shield
-
-```text
-┌───────────────────────────────────────────────┐
-│              AdamantineOS                     │
-│   Consumes only Shield Orchestrator receipt   │
-└───────────────────────────────────────────────┘
-                       ▲
-                       │ deterministic receipt only
-┌───────────────────────────────────────────────┐
-│          Shield Orchestrator v3               │
-│   Final Shield aggregation + receipt boundary │
-└───────────────────────────────────────────────┘
-                       ▲
-                       │ component verdict evidence
-┌───────────────────────────────────────────────┐
-│               ADN v3                          │
-│   Local defense decision evidence             │
-└───────────────────────────────────────────────┘
-                       ▲
-                       │ aggregated signal evidence
-┌───────────────────────────────────────────────┐
-│               DQSN v3                         │
-│   Deterministic validation + aggregation      │
-└───────────────────────────────────────────────┘
-                       ▲
-                       │ raw threat-signal evidence
-┌───────────────────────────────────────────────┐
-│            Sentinel AI v3                     │
-│   Observation → threat signal evidence        │
-└───────────────────────────────────────────────┘
-```
-
-DQSN aggregates evidence.
-
-The Shield Orchestrator is the final Shield receipt boundary for AdamantineOS handoff.
-
----
-
-## Core Mission
-
-### Deterministic Signal Aggregation
-
-DQSN converts validated threat-signal evidence into deterministic aggregate evidence.
-
-Same valid input must always produce the same output.
-
-### Fail-Closed by Default
-
-DQSN must reject unsafe input conditions, including:
-
-- malformed signal data
-- unsupported contract versions
-- unknown strict fields
-- duplicate or conflicting authority claims
-- unsafe numeric values
-- oversized payloads
-- unserialisable data
-- ambiguity affecting authority or auditability
-
-### Evidence Aggregation Only
-
-DQSN output is not final execution authority.
-
-DQSN aggregate evidence must be treated as component evidence for ADN, QWG, Guardian, and Shield Orchestrator paths.
-
-Raw DQSN output must not be consumed by AdamantineOS as final signing, execution, or approval authority.
-
----
-
-## v3.2.0 Manifest / Verdict Lock
-
-DQSN v3.2.0 includes the Shield manifest / registry / canonical verdict lock required before AdamantineOS integration.
-
-The v3.2.0 lock enforces:
-
-- component identity discipline
-- contract version discipline
-- stable reason ID registration
-- stable evidence-family registration
-- deterministic canonical verdict data
-- fail-closed rejection of malformed verdict inputs
-- Orchestrator-first handoff assumptions
-
-DQSN remains evidence-only.
-
-It cannot:
-
-- sign
-- broadcast
-- hold keys
-- expand authority
-- override the Shield Orchestrator
-- approve AdamantineOS execution directly
-
-See:
-
-- `docs/v3/MANIFEST.md`
-- `docs/v3/REASON_IDS.md`
-- `docs/v3/EVIDENCE_FAMILIES.md`
-- `docs/v3/TEST_MATRIX.md`
-- `docs/v3/PROOF_PACK.md`
-
----
-
-## Repository Layout
+## Shield v4 component identity
 
 ```text
-DigiByte-Quantum-Shield-Network/
-├─ README.md
-├─ LICENSE
-├─ CHANGELOG.md
-├─ SECURITY.md
-├─ docs/
-│  └─ v3/
-│     ├─ EVIDENCE_FAMILIES.md
-│     ├─ MANIFEST.md
-│     ├─ PROOF_PACK.md
-│     ├─ REASON_IDS.md
-│     └─ TEST_MATRIX.md
-├─ tests/
-│  └─ test_v3_2_manifest_verdict_lock.py
-└─ dqsnetwork/
-   └─ contracts/
-      └─ v3_2_lock.py
+component_id: dqsn
+component_role: shield_component_dqsn
+contract_version: 4
+schema_version: shield.verdict.v2
+canonicalization_profile: shield-v4-canon.v1
+signature_policy: policy.v1
+signature_bundle_schema: shield.signature_bundle.v1
+key_registry_schema: shield.key_registry.v1
 ```
 
----
+The distribution alignment to `4.0.0` changes none of these frozen protocol or
+schema identities.
 
-## Tests & Security Guarantees
+## Signature policy and canonical order
 
-Security and regression tests enforce:
+`policy.v1` requires strict AND verification of both required paths. Optional
+FN-DSA evidence may be absent. When present, it must verify and must be last:
 
-- deterministic aggregation behavior
-- fail-closed behavior
-- strict manifest discipline
-- stable reason IDs
-- stable evidence families
-- canonical verdict lock behavior
-- no hidden authority
-- no silent fallback
-- no Orchestrator bypass assumption
+```text
+classical-ed25519
+ml-dsa
+fn-dsa                    optional and last only
+```
 
-Tests define truth.
+Profiles are fixed as follows:
 
-No release is locked unless CI proves the contract surface.
+```text
+classical-ed25519 -> rfc8032-ed25519-v1
+ml-dsa            -> fips204-ml-dsa-65-v1
+fn-dsa            -> fips206-draft-falcon1024-v1
+```
 
----
+Optional FN-DSA cannot replace or rescue either required path. Present but
+invalid optional evidence is fatal. The Falcon-1024 profile is draft evidence,
+not final FIPS 206 proof.
 
-## v3.2.0 Status
+## Role and key separation
 
-DQSN is aligned with the Shield v3.2.0 integration-boundary track:
+The trust profile accepts only `shield_component_dqsn` keys for DQSN component
+evidence. Trust entries bind role, algorithm, key ID, key version, status,
+validity window, and public key. Wrong-role, revoked, expired, unknown,
+downgraded, or mismatched evidence fails closed.
 
-- package metadata set to `3.2.0`
-- manifest / reason ID / evidence-family docs are present
-- v3.2.0 verdict lock tests are present
-- deterministic contract behavior is preserved
-- no consensus authority is added
-- no signing, broadcasting, key custody, or hidden execution authority is added
-- AdamantineOS must consume Shield through the Orchestrator receipt only
+DQSN component signatures cannot be reused as Orchestrator receipt signatures
+or transaction signatures because their domains, roles, and payloads differ.
 
-Do **not** tag v3.2.0 until the final roadmap checklist, fresh ZIP audit, CI proof, and Red Team report are complete.
+## Real-crypto proof boundary
 
----
+The backend-neutral adapter supports reviewed provider integrations. The
+optional liboqs adapters map:
 
-## Shield v3 Invariants
+```text
+ml-dsa -> ML-DSA-65
+fn-dsa -> Falcon-1024
+```
 
-DQSN follows the Shield v3 baseline invariants:
+Default CI proves deterministic contracts, test-double behavior, KATs,
+negative paths, and 100 percent statement coverage. It does not prove native
+liboqs execution. The dedicated `Shield v4 Real OQS ML-DSA and Falcon-1024
+Proof` workflow must execute exactly the two guarded native nodes with zero
+skips, failures, or errors before a live-liboqs claim is made.
 
-- **Deny-by-default** — anything not explicitly allowed is rejected.
-- **Fail-closed** — invalid, ambiguous, partial, or unsafe input is rejected.
-- **Deterministic execution** — same valid input must produce the same output.
-- **No silent fallback** — failures must surface as explicit reasoned rejections.
-- **Evidence aggregation only** — DQSN evidence does not approve execution.
-- **Orchestrator-first handoff** — AdamantineOS receives Shield state only through the deterministic Orchestrator receipt.
+Native tests use test keys. They do not prove production key custody, HSM
+assurance, provider hardening, transaction signing, or final FIPS 206
+conformance. The repository also does not provide a production classical
+Ed25519 backend; a production deployment must still satisfy both required
+policy paths.
 
-Any violation of these invariants is a security defect.
+## Compatibility surface
 
----
+The retained v3 evaluator remains available:
+
+```python
+from dqsnetwork.v3 import DQSNV3
+
+result = DQSNV3().evaluate(request_dict)
+```
+
+Its frozen identities remain:
+
+```text
+contract_version: 3
+package_version compatibility field: 3.2.0
+```
+
+The public distribution version is `4.0.0`. The v3
+`PACKAGE_VERSION = "3.2.0"` value belongs to the historical v3 manifest and is
+intentionally unchanged. New Shield integrations should use the v4 evidence
+surface; v3 evidence must not be accepted when policy requires v4.
 
 ## Documentation
 
-- Manifest: `docs/v3/MANIFEST.md`
-- Reason IDs: `docs/v3/REASON_IDS.md`
-- Evidence Families: `docs/v3/EVIDENCE_FAMILIES.md`
-- Test Matrix: `docs/v3/TEST_MATRIX.md`
-- Proof Pack: `docs/v3/PROOF_PACK.md`
+- Active documentation index: `docs/INDEX.md`
+- V3 compatibility contract: `docs/CONTRACT.md`
+- V4 contract: `docs/v4/CONTRACT.md`
+- V4 manifest and trust profile: `docs/v4/MANIFEST.md`
+- V4 real-crypto backend: `docs/v4/REAL_CRYPTO_BACKEND.md`
+- V4 test matrix: `docs/v4/TEST_MATRIX.md`
+- V4 proof pack: `docs/v4/PROOF_PACK.md`
+- V4 release status: `docs/v4/RELEASE_STATUS_v4.0.0.md`
 
----
+Tests and normative contract documents define truth. Public claims must not
+exceed the evidence recorded in the proof pack and release status.
 
-## Contribution Policy
+## Development
 
-Rules:
+```text
+python -m pip install -e ".[test]"
+pytest --cov=dqsnetwork --cov-report=term-missing --cov-fail-under=100 -q
+```
 
-- No consensus-touching behavior.
-- No signing or broadcasting behavior.
-- No private-key custody behavior.
-- No AdamantineOS direct execution approval.
-- Deterministic evidence aggregation only.
-- Tests required for contract changes.
-- No bypass of the Shield Orchestrator receipt boundary.
+The two native-OQS tests are intentionally skipped in an ordinary local run.
+The dedicated workflow enables them and rejects any skip.
 
----
+## Release governance
+
+`4.0.0` is the aligned distribution candidate and `v4.0.0` is only the
+candidate tag name. No release decision has been authorized. Do not create or
+move `v4.0.0` until all controlled V4.10 gates are complete and DarekDGB
+explicitly authorizes the release action.
 
 ## License
 
-MIT License  
-© 2025 **DarekDGB**
+MIT License. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
+
+Copyright 2025 DarekDGB
