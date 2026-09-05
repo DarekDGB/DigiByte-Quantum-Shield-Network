@@ -4,7 +4,13 @@ Author attribution: DarekDGB
 
 ## Status
 
-This document locks the DigiByte Quantum Shield Network Shield v4 real-crypto backend boundary for component verdict evidence.
+Distribution status: `4.0.0` controlled pre-release candidate; candidate tag
+`v4.0.0` is not created or authorized.
+
+This document locks the DigiByte Quantum Shield Network Shield v4 real-crypto
+backend boundary for component verdict evidence. It does not grant transaction,
+broadcast, consensus, wallet-key custody, Orchestrator receipt, or final
+execution authority.
 
 V4.8F-B introduces a deployment-controlled real ML-DSA adapter path for DigiByte Quantum Shield Network. It does not replace the deterministic TEST-ONLY signature path used by contract tests. V4.8H-C adds authenticated `standard_profile` binding and optional FN-DSA draft-profile evidence semantics. It does not make DigiByte Quantum Shield Network a transaction signer, broadcaster, consensus layer, wallet custody layer, or AdamantineOS final authority.
 
@@ -21,7 +27,9 @@ DigiByte Quantum Shield Network still must not:
 - bypass the Shield Orchestrator;
 - bypass AdamantineOS.
 
-The Shield Orchestrator verifies DigiByte Quantum Shield Network component evidence before producing a Shield receipt. AdamantineOS remains the final execution boundary.
+The Shield Orchestrator verifies DigiByte Quantum Shield Network component
+evidence before producing a Shield receipt. AdamantineOS remains the final
+fail-closed policy and execution boundary.
 
 ## Algorithm lock
 
