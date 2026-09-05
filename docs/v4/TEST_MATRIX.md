@@ -2,9 +2,14 @@
 
 Author attribution: DarekDGB
 
+Distribution status: `4.0.0` controlled pre-release candidate; candidate tag
+`v4.0.0` is not created or authorized.
+
 ## Scope
 
-This matrix covers the DigiByte Quantum Shield Network Shield v4 component-verdict contract and the V4.8F-B real ML-DSA backend path.
+This matrix covers the DigiByte Quantum Shield Network Shield v4
+component-verdict contract, required classical and ML-DSA paths, optional
+FN-DSA/Falcon-1024 evidence, and the real-backend boundary.
 
 The goal is to prove DigiByte Quantum Shield Network can produce and verify v4 component evidence while keeping TEST-ONLY deterministic signatures separate from real backend mode.
 
