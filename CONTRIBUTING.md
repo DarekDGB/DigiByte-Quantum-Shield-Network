@@ -1,143 +1,69 @@
-# Contributing to DQSN (DigiByte Quantum Shield Network)
+# Contributing to DigiByte Quantum Shield Network
 
-> **Shield Contract v3 Notice**
->
-> DQSN is now a **Shield Contract v3 signal aggregation and transport layer**.
-> It is no longer an authoritative telemetry or scoring engine.
->
-> Contributions must not weaken:
-> - contract strictness
-> - determinism
-> - fail-closed behavior
->
-> Authoritative specifications live in **`docs/INDEX.md`**.
+Author attribution: DarekDGB
 
----
+DQSN is the deterministic signal-aggregation evidence component of the
+DigiByte Quantum Shield. Contributions must preserve deterministic,
+fail-closed behavior and the strict authority boundary.
 
-## 🚀 Project Scope (v3)
+## Welcome contributions
 
-**DQSN (Shield Contract v3)** sits between **sensor layers** (e.g. Sentinel AI)
-and **decision layers** (ADN, Adaptive Core).
+- stronger bounded signal validation and deterministic aggregation;
+- clearer reason and evidence-family mappings;
+- safer Shield component integrations;
+- Shield v4 contract, trust-profile, and backend hardening;
+- accurate documentation; and
+- positive and negative regression tests.
 
-Its responsibilities are strictly limited to:
+## Non-negotiable boundaries
 
-- validating Shield Contract v3 envelopes
-- deterministic ordering and deduplication of signals
-- context aggregation without reinterpretation
-- fail-closed transport of security signals
-
-DQSN **must never**:
-- generate telemetry as authoritative behavior
-- score, reinterpret, or decide on risk
-- interfere with consensus or node behavior
-- act as an enforcement or policy engine
-
-Legacy telemetry concepts are preserved in `docs/legacy/` for historical reference only.
-
----
-
-## ✅ What Contributions Are Welcome
-
-### ✔️ Contract & Core Improvements
-- Strengthening Shield Contract v3 validation
-- Improving fail-closed guarantees
-- Hardening determinism and replay safety
-- Reducing attack surface
-- Clarifying contract semantics
-
-### ✔️ Testing & Verification
-- Additional fail-closed tests
-- Determinism and regression tests
-- Property-based or fuzz testing
-- CI hardening
-
-### ✔️ Performance & Reliability
-- Safe performance optimizations
-- Memory and payload-bound enforcement
-- Latency improvements that do not alter behavior
-
-### ✔️ Documentation
-- Improvements to v3 documentation
-- Clarifying invariants and design intent
-- Correcting ambiguity or drift
-
----
-
-## ❌ What Will Not Be Accepted
-
-### 🚫 Weakening the v3 Contract
-- Making validation permissive
-- Allowing partial or best-effort parsing
-- Softening fail-closed behavior
-- Introducing “auto-fix” logic for invalid input
-
-### 🚫 Decision or Enforcement Logic
 DQSN must not:
-- assign risk scores
-- reinterpret upstream decisions
-- override or downgrade signals
-- act as a policy engine
 
-### 🚫 Consensus Interaction
-DQSN must never:
-- influence block acceptance
-- modify difficulty or timestamps
-- interact with DigiByte consensus rules
-- act as a voting or signaling mechanism
+- sign or broadcast DigiByte transactions;
+- hold, derive, access, or control wallet private keys;
+- validate blocks, alter mempool rules, or change DigiByte consensus;
+- reinterpret upstream evidence as hidden decision authority;
+- repair a noncanonical received signature bundle;
+- let optional FN-DSA replace or rescue a required signature;
+- bypass the Shield Orchestrator; or
+- grant AdamantineOS final signing or execution approval.
 
-### 🚫 Unreviewable Complexity
-Avoid introducing:
-- opaque ML models
-- heavy frameworks
-- logic that obscures determinism or auditability
+DQSN output is component evidence. The Shield Orchestrator verifies that
+evidence and produces the only Shield receipt AdamantineOS may consume.
+AdamantineOS remains the final fail-closed policy and execution boundary.
 
----
+## Shield v4 requirements
 
-## 🧱 Design Principles (Non-Negotiable)
+`policy.v1` requires `classical-ed25519`, `ml-dsa`, then optional-last
+`fn-dsa`. The profiles are `rfc8032-ed25519-v1`,
+`fips204-ml-dsa-65-v1`, and `fips206-draft-falcon1024-v1` respectively.
+Optional FN-DSA cannot replace or rescue either required path and is not final
+FIPS 206 proof.
 
-All contributions must respect:
+Changes must preserve component role `shield_component_dqsn`, exact
+canonicalization and schema identities, role and key separation, and
+fail-closed handling of malformed or untrusted data.
 
-1. **Fail-Closed First**  
-   Invalid input must never propagate.
+## Pull request expectations
 
-2. **Determinism**  
-   Same input → same output → same `context_hash`.
+A valid change includes:
 
-3. **Separation of Authority**  
-   DQSN transports signals; it does not decide.
+- a precise scope and security rationale;
+- tests for each changed behavior and negative boundary;
+- no undocumented contract, schema, fixture, or authority change;
+- updated documentation when behavior changes;
+- 100 percent statement coverage; and
+- green standard CI plus any applicable guarded real-OQS proof.
 
-4. **Minimal Surface**  
-   Keep contracts small, explicit, and auditable.
+Native provider evidence must never be described as production key custody,
+HSM assurance, transaction signing, or final FIPS 206 conformance.
 
-5. **Auditability**  
-   Security reviewers must be able to reason about behavior from code alone.
+Architectural direction is controlled by DarekDGB. Tests and normative
+contract documents define truth.
 
-6. **History Preservation**  
-   Legacy concepts may be referenced, not re-introduced.
+## License
 
----
+By contributing, you agree that your contribution is licensed under the MIT
+License.
 
-## 🔄 Pull Request Expectations
-
-A PR must include:
-
-- Clear explanation of **what changed and why**
-- Tests for any contract or logic changes
-- No weakening of v3 invariants
-- Documentation updates where applicable
-
-Additional notes:
-- Contract changes **require tests**
-- Determinism changes require **regression coverage**
-- Fail-closed behavior must be preserved or strengthened
-
-The architect (**@DarekDGB**) reviews **direction and invariants**.  
-Contributors and reviewers assess **technical correctness**.
-
----
-
-## 📝 License
-
-By contributing, you agree your work is released under the **MIT License**.
-
-© 2025 **DarekDGB**
+Copyright 2025 DarekDGB
