@@ -1,72 +1,40 @@
-# DigiByte Quantum Shield Network — Shield v3.2.0 Release Status
+# DigiByte Quantum Shield Network - Shield v3.2.0 Historical Release Status
 
 Author attribution: DarekDGB
+Status: historical release evidence
 
-## Status
+## Historical scope
 
-Shield v3.2.0 is the manifest / verdict / receipt lock release.
+Shield v3.2.0 locked the DQSN manifest, reason ID registry,
+evidence-family registry, canonical component verdict, and Orchestrator-first
+AdamantineOS handoff boundary.
 
-This repository is ready for the `v3.2.0` Shield-side tag only after:
+The historical controlled process required green GitHub Actions, the coverage
+gate, aligned registry and proof documents, a fresh-ZIP audit, authorized Red
+Team and bypass review, and no unresolved critical or high finding. That
+pending-tag checklist is retained as history, not as a current release
+instruction.
 
-- GitHub Actions are green
-- coverage gate remains satisfied
-- v3.2.0 manifest docs are present
-- reason ID registry is present
-- evidence-family registry is present
-- test matrix is present
-- proof pack is present
-- docs match tests
-- final fresh ZIP audit is complete
-- authorized Red Team / bypass review is complete
-- no unresolved critical or high findings remain
-
-## Release Scope
-
-This release locks the Shield v3.2.0 integration boundary for this component.
-
-It includes:
-
-- deterministic manifest discipline
-- stable reason ID registry
-- stable evidence-family registry
-- canonical component verdict lock
-- fail-closed validation expectations
-- Orchestrator-first AdamantineOS handoff language
-
-## Authority Boundary
-
-This component does not sign, broadcast, hold keys, modify DigiByte consensus, expand authority, override the Shield Orchestrator, or approve AdamantineOS execution directly.
-
-Component output is evidence only.
-
-AdamantineOS must consume Shield only through the deterministic Shield Orchestrator receipt.
-
-Shield `ALLOW` is not final AdamantineOS signing or execution authority.
-
-## Red Team / Bypass Review
-
-Final review scope included:
-
-- component bypass
-- unknown registry values
-- duplicate / missing evidence
-- context-hash mismatch
-- receipt tampering where applicable
-- AI authority bypass
-- governance approval reuse at current scope
-- replay / freshness boundary at current Shield scope
-- docs-vs-tests alignment
-
-Result: no unresolved critical or high findings remain for Shield v3.2.0 tagging.
-
-## AdamantineOS Tag Boundary
-
-AdamantineOS is not tagged as part of Shield v3.2.0.
-
-AdamantineOS remains on its own release line:
+## Frozen compatibility identities
 
 ```text
-v2.2.0 — WSQK v2 Quantum-Aware Upgrade
+contract_version: 3
+package_version compatibility field: 3.2.0
+output_schema_version: shield.verdict.v1
 ```
 
-AdamantineOS must not be tagged until Shield v3 is fully integrated into AdamantineOS and the Adamantine release checklist passes.
+The top-level `4.0.0` distribution candidate does not alter those identities.
+
+## Authority boundary
+
+DQSN v3 evidence did not sign or broadcast transactions, hold keys, change
+DigiByte consensus, override the Shield Orchestrator, or approve AdamantineOS
+execution. AdamantineOS consumed Shield only through the deterministic
+Orchestrator receipt. Shield `ALLOW` was not final signing or execution
+authority.
+
+## Relationship to the v4 candidate
+
+This file is historical v3 evidence. Current v4 candidate status is recorded in
+`docs/v4/RELEASE_STATUS_v4.0.0.md`. Neither document authorizes creation or
+movement of a release tag.
