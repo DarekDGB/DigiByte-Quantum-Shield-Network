@@ -2,6 +2,21 @@
 
 Author attribution: DarekDGB
 
+Distribution version: `4.0.0`
+Candidate tag: `v4.0.0`
+Release status: controlled pre-release; not released and not tagged
+
+The distribution version is not a protocol identifier. The component, role,
+contract, schema, canonicalization, signature-policy, bundle-schema, and
+registry-schema values below remain frozen.
+
+Frozen shared KAT files:
+
+```text
+176d9d8f7d16be456f2bf783c3031b65c46fd5f9efed1aba89d216b98406b0ff  tests/fixtures/v4/component_verdict_policy_v1_kat.json
+b799b963cb46ccf579a0380cffeecd81f99fa616267e6d69fec4f2bf06e9f6ef  tests/fixtures/v4/fn_dsa_signed_message_draft_profile_kat.json
+```
+
 ## Component
 
 ```text
@@ -16,7 +31,10 @@ schema_version: shield.verdict.v2
 
 DigiByte Quantum Shield Network Shield v4 emits cryptographically verifiable component verdict evidence for the Shield Orchestrator.
 
-DigiByte Quantum Shield Network remains an evidence producer, not a transaction signer, broadcaster, consensus layer, wallet custody layer, or AdamantineOS override layer.
+DigiByte Quantum Shield Network remains an evidence producer, not a transaction
+signer or broadcaster, consensus layer, wallet-key custody layer, Shield
+Orchestrator replacement, or AdamantineOS override layer. AdamantineOS remains
+the final fail-closed policy and execution boundary.
 
 ## Frozen Profiles
 
