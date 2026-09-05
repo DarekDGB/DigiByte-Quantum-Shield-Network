@@ -5,7 +5,10 @@ This document defines the **authoritative contract** for interacting with the
 
 Any integration that violates this contract is **unsupported and unsafe**.
 
-**Release status:** v3.1.0 hardened with deterministic fail-closed behavior, 100% full-package coverage enforcement, timezone-aware UTC hardening, and documented manual test reproducibility.
+**Compatibility status:** frozen Shield Contract v3 behavior retained inside
+the `4.0.0` distribution candidate. The historical v3.1.0 hardening and v3.2.0
+manifest lock are complete. Active Shield v4 component-evidence rules are in
+`docs/v4/CONTRACT.md`.
 
 ---
 
