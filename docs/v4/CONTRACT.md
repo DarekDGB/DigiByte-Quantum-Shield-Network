@@ -4,7 +4,12 @@ Author attribution: DarekDGB
 
 ## Status
 
-This document defines the DigiByte Quantum Shield Network Shield v4 component-verdict contract.
+Distribution status: `4.0.0` controlled pre-release candidate; candidate tag
+`v4.0.0` is not created or authorized.
+
+This document defines the frozen DigiByte Quantum Shield Network Shield v4
+component-verdict contract. Distribution alignment does not change any
+protocol, schema, canonicalization, policy, role, or registry identity.
 
 This is a parallel v4 contract. It does not modify or replace the audited v3.2 DigiByte Quantum Shield Network deterministic contract.
 
@@ -24,7 +29,7 @@ DigiByte Quantum Shield Network Shield v4 produces cryptographically verifiable 
 
 The Shield Orchestrator verifies component evidence before producing a Shield receipt.
 
-AdamantineOS remains the final execution boundary.
+AdamantineOS remains the final fail-closed policy and execution boundary.
 
 ## Contract Identity
 
