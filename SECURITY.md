@@ -1,272 +1,113 @@
-# Security Policy — DigiByte Quantum Shield Network
+# Security Policy - DigiByte Quantum Shield Network
 
-**Repository:** DigiByte-Quantum-Shield-Network  
-**Component:** DQSN v3 — Deterministic Signal Aggregation Layer  
-**Maintainer:** DarekDGB  
-**License:** MIT
+Repository: `DigiByte-Quantum-Shield-Network`
+Component: DQSN
+Maintainer: DarekDGB
+License: MIT
 
-This document defines the security policy and disclosure process for DigiByte Quantum Shield Network, with a focus on the **Shield v3.2.0 manifest / verdict boundary**.
+## Supported surfaces
 
----
-
-## Supported Versions
-
-Only the current Shield v3 DQSN surface is supported and security-maintained for new Shield work.
-
-| Component | Status |
+| Surface | Status |
 |---|---|
-| DQSN v3.2.0 | ✅ Supported — current integration-boundary hardening surface |
-| Earlier v3.x | ✅ Supported only as historical baseline where applicable |
-| Older archived behavior | ❌ Unsupported |
+| Distribution `4.0.0` / candidate `v4.0.0` | Controlled pre-release; security-maintained; not released or tagged |
+| Shield v3.2.0 compatibility surface | Historical release; compatibility-maintained |
+| Archived v2 behavior | Unsupported unless an issue affects a maintained surface |
 
-Legacy documentation may remain in the repository for historical reference, but it is **non-authoritative** for v3.2.0 security behavior.
+The distribution-version alignment does not change frozen v3 or v4 protocol
+and schema identities. Historical material is non-authoritative for new v4
+security claims.
 
----
+## Security model
 
-## Security Model
+DQSN is a deterministic, fail-closed signal-aggregation evidence component. It
+validates and aggregates bounded threat signals and emits role-bound evidence
+for the Shield Orchestrator.
 
-DQSN is a **deterministic signal aggregation evidence layer**.
+DQSN does not sign or broadcast DigiByte transactions, hold wallet keys, change
+consensus, approve spending or execution, produce the final Shield receipt,
+bypass the Shield Orchestrator, or override AdamantineOS.
 
-Security is enforced through:
+AdamantineOS remains the final fail-closed policy and execution boundary.
+Shield `ALLOW` is evidence that may continue to independent downstream checks,
+not execution authority.
 
-- strict input validation
-- deterministic aggregation
-- stable reason codes
-- stable evidence families
-- canonical context hashing
-- fail-closed behavior
-- no hidden authority
-- tests for manifest / verdict behavior
+## Frozen v4 identities
 
-DQSN is **consensus-neutral**.
+```text
+component_id: dqsn
+component_role: shield_component_dqsn
+contract_version: 4
+schema_version: shield.verdict.v2
+canonicalization_profile: shield-v4-canon.v1
+signature_policy: policy.v1
+signature_bundle_schema: shield.signature_bundle.v1
+key_registry_schema: shield.key_registry.v1
+```
 
-It does not:
+Distribution version `4.0.0` is not a protocol identifier.
 
-- alter DigiByte consensus rules
-- sign transactions
-- broadcast transactions
-- hold, derive, or access private keys
-- approve AdamantineOS execution directly
-- override the Shield Orchestrator
+## Required and optional algorithms
 
-DQSN produces aggregate evidence only.
+`policy.v1` requires `classical-ed25519` then `ml-dsa`. Optional `fn-dsa` may
+appear only last under `fips206-draft-falcon1024-v1`. It may be absent. If
+present, it must verify and cannot replace or rescue a missing or failed
+required path. The Falcon-1024 profile is draft evidence, not final FIPS 206
+proof.
 
----
+A verifier rejects reordered, duplicated, unknown, wrong-profile, wrong-role,
+revoked, expired, mismatched, or downgraded evidence before authority can be
+inferred.
 
-## Non-Negotiable Design Invariants
+## Role and key separation
 
-### 1. Fail-Closed by Default
+DQSN component evidence uses only role `shield_component_dqsn`. Trust entries
+bind role, algorithm, key ID, key version, validity window, status, and public
+key. Component evidence cannot be reused as an Orchestrator receipt or
+transaction-signing authority.
 
-Any invalid, ambiguous, incomplete, unsafe, or malformed input must produce an explicit rejection path.
+The repository's deterministic signature material is TEST-ONLY. Selected real
+backends may sign DQSN component evidence only; that does not grant transaction
+signing or wallet-key custody.
 
-Expected fail-closed behavior includes:
+## Real-backend evidence
 
-- deterministic reject decision
-- explicit reason code
-- no silent fallback
-- no implicit allow
-- no authority escalation
+The backend-neutral adapter and optional liboqs adapters preserve fail-closed
+behavior. There is no silent fallback from a selected real backend to TEST-ONLY
+signatures.
 
-### 2. Determinism
+Standard CI proves interface behavior, KATs, negative paths, and 100 percent
+statement coverage. The dedicated real-OQS workflow proves the exact native
+ML-DSA-65 and Falcon-1024 test nodes with a no-skip JUnit guard. Neither proof
+establishes production key custody, HSM assurance, provider hardening,
+transaction signing, or final FIPS 206 conformance.
 
-The same valid input must always produce the same output.
+## Required negative behavior
 
-Contract behavior must not depend on:
+The v4 surface rejects missing or invalid required signatures, noncanonical
+order, duplicates, optional-evidence rescue, role or key mismatch, revoked or
+out-of-window keys, unsupported profiles, context or payload mutation,
+malformed canonical or binary material, native exceptions, non-boolean verify
+results, TEST-ONLY material at a real boundary, and forbidden transaction,
+broadcast, consensus, custody, bypass, or final-authority metadata.
 
-- timestamps
-- randomness
-- environment state
-- network state
-- file-system state
-- dictionary iteration order
-- runtime-dependent side effects
+## Reporting a vulnerability
 
-Canonical hashes must be reproducible.
+Do not disclose a suspected security issue publicly first. Use a private GitHub
+security advisory when available, or contact `@DarekDGB`. Include the affected
+commit or tag, reproduction steps, expected and actual behavior, security
+impact, and affected surface.
 
-### 3. Evidence Aggregation Only
+## Release governance
 
-DQSN may:
+Distribution `4.0.0` is a controlled candidate. Do not create or move
+`v4.0.0` before every V4.10 gate is complete and DarekDGB explicitly
+authorizes the release. Green CI and aligned metadata do not themselves grant
+release authority.
 
-- validate threat-signal evidence
-- normalize signal data
-- deduplicate compatible evidence
-- produce deterministic aggregate evidence
-- provide evidence to ADN and the Shield Orchestrator path
+## Final security rule
 
-DQSN must never:
+Reject any change that weakens determinism, fail-closed behavior, canonical
+bundle order, required signature policy, DQSN role separation, evidence-only
+behavior, or the Orchestrator-first boundary.
 
-- execute cryptographic signing
-- modify consensus behavior
-- perform final approval
-- approve AdamantineOS execution directly
-- override the Shield Orchestrator
-- create hidden authority through fallback behavior
-
-### 4. No Silent Fallbacks
-
-All error paths must be explicit, deterministic, and test-covered.
-
-A fallback that changes authority, weakens validation, or allows execution is a security defect.
-
----
-
-## v3.2.0 Security Boundary
-
-The v3.2.0 boundary locks DQSN into the Shield manifest / verdict / receipt upgrade path.
-
-DQSN component verdicts are **evidence only**.
-
-DQSN must not be treated as final execution authority.
-
-AdamantineOS must consume Shield decisions only through the deterministic **Shield Orchestrator receipt**.
-
-Raw DQSN outputs must not be consumed directly by AdamantineOS as final signing, execution, or approval authority.
-
-A Shield `ALLOW` result only permits AdamantineOS to continue its own checks.
-
-It is **not** final signing or execution approval.
-
----
-
-## Fail-Closed Requirements
-
-The following conditions must reject deterministically:
-
-- missing required verdict data
-- malformed verdict data
-- unknown fields in strict contract paths
-- duplicated authority claims
-- unknown reason IDs
-- unknown evidence families
-- mismatched component identity
-- mismatched contract version
-- mismatched context hash
-- unsafe or unserialisable input
-- non-canonical verdict data
-- ambiguity affecting authority, determinism, or auditability
-
----
-
-## Security Testing
-
-Security guarantees are enforced through tests covering:
-
-- fail-closed behavior
-- deterministic aggregation behavior
-- unsupported contract versions
-- reason-code stability
-- evidence-family validation
-- manifest/verdict alignment
-- Orchestrator-first boundary assumptions
-- regression protection against behavior drift
-
-Security-sensitive changes must include tests.
-
-Tests define truth.
-
-Documentation must never claim behavior that tests do not enforce.
-
----
-
-## Release Requirements
-
-No DQSN v3.2.0 release should be tagged unless all of the following are true:
-
-- roadmap checklist is complete
-- tests pass locally or in CI
-- coverage gate remains satisfied
-- manifest files are present and aligned
-- reason IDs are documented and tested
-- evidence families are documented and tested
-- verdict boundary tests pass
-- Orchestrator receipt boundary is respected
-- final fresh ZIP audit is complete
-- Red Team report is complete
-- no docs-vs-tests mismatch remains
-
----
-
-## Reporting a Vulnerability
-
-If you believe you have found a security issue:
-
-1. Do **not** disclose it publicly first.
-2. Open a private security advisory through GitHub if available.
-3. Alternatively, contact the maintainer through the GitHub profile: **@DarekDGB**.
-
-Please include:
-
-- clear description of the issue
-- steps to reproduce, if applicable
-- expected behavior
-- actual behavior
-- affected commit hash or tag
-- potential security impact
-
-Coordinated disclosure is strongly encouraged.
-
----
-
-## In Scope
-
-Security issues in scope include:
-
-- DQSN aggregation contract behavior
-- determinism violations
-- fail-closed bypasses
-- reason ID ambiguity
-- evidence-family ambiguity
-- manifest/verdict mismatch
-- context hash mismatch
-- Orchestrator boundary bypass risk
-- AdamantineOS raw-output bypass risk
-- CI or test coverage gaps affecting security
-
----
-
-## Out of Scope
-
-The following are out of scope unless they create a direct security defect:
-
-- DigiByte consensus vulnerabilities
-- mining-layer issues
-- wallet UI preferences
-- performance tuning
-- cosmetic documentation changes
-- non-security refactors
-- unsupported archived behavior
-
----
-
-## Security Updates
-
-Security fixes may:
-
-- tighten validation
-- improve fail-closed behavior
-- add negative tests
-- update documentation
-- clarify reason IDs or evidence families
-
-Breaking changes to security semantics require:
-
-- documentation updates
-- explicit version notes
-- regression tests
-- coverage proof
-
----
-
-## Disclaimer
-
-This software is provided **as-is**, without warranty of any kind.
-
-Use at your own risk.
-
----
-
-## Final Security Rule
-
-Any change that weakens determinism, fail-closed behavior, explicit authority boundaries, evidence-only behavior, or the Orchestrator-first receipt model must be rejected.
-
-© 2025 DarekDGB
+Copyright 2025 DarekDGB
