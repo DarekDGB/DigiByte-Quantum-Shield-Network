@@ -1,58 +1,47 @@
 # DQSN Documentation Index
 
-This index lists the **authoritative documentation** for the DigiByte Quantum Shield Network (DQSN).
+Author attribution: DarekDGB
 
-If any document conflicts with the v3 contract implementation,
-the **code in `dqsnetwork/` is the source of truth**.
+This index separates the active `4.0.0` distribution candidate, the Shield v4
+component-evidence contract, the retained v3 compatibility evaluator, and
+historical v2 material.
 
----
+## Active Shield v4 candidate documents
 
-## Start here (Shield Contract v3)
+- Contract: `v4/CONTRACT.md`
+- Manifest and trust profile: `v4/MANIFEST.md`
+- Real-crypto backend: `v4/REAL_CRYPTO_BACKEND.md`
+- Test matrix: `v4/TEST_MATRIX.md`
+- Proof pack: `v4/PROOF_PACK.md`
+- Release status: `v4/RELEASE_STATUS_v4.0.0.md`
 
-- **Contract (binding specification)**  
-  `CONTRACT.md`  
-  Defines the Shield Contract v3 schema, invariants, and guarantees.
+These documents describe DQSN component evidence for the Shield Orchestrator.
+They do not grant transaction, broadcast, consensus, wallet-key custody, or
+final execution authority.
 
-- **Architecture (design and data flow)**  
-  `ARCHITECTURE.md`  
-  Describes DQSN’s role, authority boundaries, and deterministic aggregation model.
+## Retained v3 compatibility surface
 
----
+- Contract: `CONTRACT.md`
+- Architecture: `ARCHITECTURE.md`
+- Manifest: `v3/MANIFEST.md`
+- Reason IDs: `v3/REASON_IDS.md`
+- Evidence families: `v3/EVIDENCE_FAMILIES.md`
+- Test matrix: `v3/TEST_MATRIX.md`
+- Historical proof pack: `v3/PROOF_PACK.md`
+- Historical release status: `v3/RELEASE_STATUS_v3.2.0.md`
+- Completed upgrade record: `DQSN_V3_UPGRADE_PLAN.md`
 
-## Repository structure
+The v3 contract identity remains `3` and its historical manifest package field
+remains `3.2.0`. Those values are not the active distribution version.
 
-- **Authoritative v3 implementation**  
-  `../dqsnetwork/`  
-  Canonical Shield Contract v3 logic, hardened as v3.1.0 with 100% full-package coverage enforcement.
+## Source-of-truth order
 
-- **Optional API surface**  
-  `../dqsnetwork/v3_api.py`  
-  FastAPI wiring (optional dependency).
+Tests and implementation define behavior. Normative v4 documents define the v4
+evidence contract; the retained v3 contract defines only the v3 compatibility
+surface. If prose conflicts with code and tests, the implementation and tests
+control until the documentation is corrected.
 
-- **Legacy / historical prototypes**  
-  `../legacy/`  
-  Preserved for reference only.  
-  **Not part of the v3 contract surface.**
+## Historical material
 
----
-
-## Historical records
-
-- **DQSN v3 upgrade record (completed)**  
-  `DQSN_V3_UPGRADE_PLAN.md`
-
----
-
-## Legacy documentation (non-authoritative)
-
-Legacy documents are preserved for historical and research context only.
-They do **not** describe current Shield Contract v3 behavior.
-
-Located in `docs/legacy/`.
-
----
-
-## Documentation invariant
-
-> If documentation and code disagree,  
-> **the code in `dqsnetwork/` wins.**
+Files beneath `docs/legacy/` and `legacy/` are non-authoritative historical
+records. They must not be used to infer current Shield v4 behavior.
