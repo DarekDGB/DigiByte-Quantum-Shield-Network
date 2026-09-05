@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "digibyte-quantum-shield-network"
-version = "3.2.0"
-description = "DigiByte Quantum Shield Network (DQSN) — deterministic quantum-shield coordination layer."
+version = "4.0.0"
+description = "DigiByte Quantum Shield Network - deterministic Shield v4 signal-aggregation evidence component."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
