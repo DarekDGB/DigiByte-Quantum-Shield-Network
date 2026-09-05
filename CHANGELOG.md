@@ -4,6 +4,25 @@ All notable changes to this repository are documented here.
 
 ---
 
+## 4.0.0 - Shield v4 Candidate Release Pack
+
+- Aligned distribution metadata and public status to the controlled `4.0.0`
+  candidate without changing the frozen v3 or v4 protocol identities.
+- Added the Shield v4 proof pack and candidate release-status record.
+- Completed the v4 contract, manifest, backend, test-matrix, authority, and
+  native-proof documentation set.
+- Preserved `PACKAGE_VERSION = "3.2.0"` as the historical v3 manifest field.
+- Historicized completed v3.1.0 and v3.2.0 release instructions without
+  rewriting their technical evidence or release history.
+- Added a release-pack regression lock for version truth, author attribution,
+  KAT hashes, canonical algorithm order, exact native test nodes, and
+  candidate-only tag authority.
+
+`4.0.0` is a controlled pre-release distribution candidate. The `v4.0.0` tag
+has not been created and is not authorized by this changelog entry.
+
+---
+
 ## v3.2.0 — Manifest / Verdict / Receipt Lock
 
 - Added Shield v3.2.0 manifest documentation under `docs/v3/`.
